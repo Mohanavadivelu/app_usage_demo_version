@@ -6,21 +6,19 @@ This folder contains the database schema and tables used for tracking **applicat
 
 ## 📂 Contents
 
-- **schema.py** – Python dictionary containing database schema definitions
-- **schema.sql** – SQL script to create database tables and indexes
+- **schema file** – Defines the database schema and table structures.
 - **Tables:**
-  1. **app_usage** – Stores logs of application usage per user
-  2. **app_list** – Maintains the master list of applications with metadata
+  1. **app_usage** – Stores logs of application usage per user.
+  2. **app_list** – Maintains the master list of applications with metadata.
 
 - **Indexes:**  
-  To improve query performance on frequently used columns such as `user`, `log_date`, and `application_name`
+  To improve query performance on frequently used columns such as `user`, `log_date`, and `application_name`.
 
 ---
 
 ## 🗄️ Database Schema
 
 ### **1. app_usage**
-
 Tracks user activity on applications.
 
 | Column              | Type     | Description                      |
@@ -32,13 +30,12 @@ Tracks user activity on applications.
 | application_name    | TEXT(100)| Name of the application.         |
 | application_version | TEXT(50) | Version of the application.      |
 | log_date            | TEXT     | Date of usage log.               |
-| legacy_app          | BOOLEAN  | Flag if the app is legacy.       |
+| legacy_app          | BOOLEAN  | Flag if the app is legacy.       | 
 | duration_seconds    | INTEGER  | Duration of usage in seconds.    |
 | created_at          | DATETIME | Record creation timestamp.       |
 | updated_at          | DATETIME | Record update timestamp.         |
 
-Indexes:
-
+Indexes:  
 - `idx_app_usage_user`  
 - `idx_app_usage_date`  
 - `idx_app_usage_app`
@@ -46,7 +43,6 @@ Indexes:
 ---
 
 ### **2. app_list**
-
 Holds metadata about applications.
 
 | Column           | Type     | Description                               |
@@ -68,23 +64,10 @@ Holds metadata about applications.
 
 ---
 
-## ⚡ Database Setup
+## ⚡ Creating the Database
 
-### Creating the Database
-
-To create the database from the schema file using PowerShell:
-
-```powershell
-# Create a new SQLite database from the schema
-Get-Content schema.sql | sqlite3 app_usage.db
-```
-
-Or using sqlite3 with .read command:
+To generate the database from the schema file, run:
 
 ```bash
-sqlite3 app_usage.db ".read schema.sql"
-```
-
-### Database File Location
-
-The database file `app_usage.db` will be created in the current directory.
+# Create a new SQLite database from the schema
+Get-Content schema.sql | sqlite3 app_usage.db
