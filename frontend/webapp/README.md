@@ -1,0 +1,1 @@
+This folder hold the HTML application for web application

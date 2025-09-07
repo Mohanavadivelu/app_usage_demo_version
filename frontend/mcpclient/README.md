@@ -1,0 +1,1 @@
+This folder hold the content for MCP client for front end
