@@ -278,12 +278,57 @@ def get_app_list_by_type(app_type: str) -> List[Dict[str, Any]]:
 
 @handle_database_error
 def get_app_list_summary() -> Dict[str, Any]:
-    """Get summary statistics for app list."""
+    """
+    Get comprehensive summary statistics for the app list catalog.
+    
+    This function provides an overview of the application catalog including:
+    - Total number of applications registered
+    - Tracking status distribution (enabled vs disabled)
+    - Application types breakdown (e.g., windows, web, mobile)
+    - Top publishers by application count
+    
+    The summary is useful for:
+    - Dashboard analytics and reporting
+    - Understanding catalog composition
+    - Monitoring tracking adoption rates
+    - Identifying top publishers in the catalog
+    
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+            - total_apps (int): Total number of applications in the catalog
+            - enabled_tracking (int): Number of apps with tracking enabled
+            - disabled_tracking (int): Number of apps with tracking disabled
+            - app_types (dict): Distribution of applications by type {type: count}
+            - publishers (dict): Top 10 publishers by app count {publisher: count}
+    
+    Raises:
+        DatabaseError: If database operation fails
+    
+    Example:
+        {
+            "total_apps": 150,
+            "enabled_tracking": 120,
+            "disabled_tracking": 30,
+            "app_types": {
+                "windows": 80,
+                "web": 45,
+                "mobile": 25
+            },
+            "publishers": {
+                "Microsoft": 25,
+                "Google": 20,
+                "Adobe": 15,
+                ...
+            }
+        }
+    """
     try:
         with get_db_context() as conn:
             cursor = conn.cursor()
 
-            # Get total apps and tracking status
+            # Query 1: Get total application count and tracking status distribution
+            # This query counts all apps and uses conditional aggregation to separate
+            # apps with tracking enabled vs disabled in a single database query
             cursor.execute('''
                 SELECT 
                     COUNT(*) as total_apps,
@@ -293,16 +338,22 @@ def get_app_list_summary() -> Dict[str, Any]:
             ''')
             result = cursor.fetchone()
 
-            # Get app types distribution
+            # Query 2: Get application types distribution
+            # Groups applications by their type (e.g., windows, web, mobile) and counts
+            # each category, ordered by count descending to show most common types first
             cursor.execute('''
                 SELECT app_type, COUNT(*) as count
                 FROM app_list
                 GROUP BY app_type
                 ORDER BY count DESC
             ''')
+            # Convert query results to dictionary for easy JSON serialization
             app_types = {row['app_type']: row['count'] for row in cursor.fetchall()}
 
-            # Get publishers distribution
+            # Query 3: Get top publishers distribution
+            # Groups applications by publisher and counts apps per publisher
+            # Limited to top 10 publishers to keep response size manageable
+            # Ordered by count descending to show publishers with most apps first
             cursor.execute('''
                 SELECT publisher, COUNT(*) as count
                 FROM app_list
@@ -310,8 +361,11 @@ def get_app_list_summary() -> Dict[str, Any]:
                 ORDER BY count DESC
                 LIMIT 10
             ''')
+            # Convert query results to dictionary for easy JSON serialization
             publishers = {row['publisher']: row['count'] for row in cursor.fetchall()}
 
+            # Construct the summary response dictionary
+            # All counts are guaranteed to be non-null due to COUNT() function behavior
             summary = {
                 "total_apps": result['total_apps'],
                 "enabled_tracking": result['enabled_tracking'],
@@ -320,11 +374,14 @@ def get_app_list_summary() -> Dict[str, Any]:
                 "publishers": publishers
             }
 
+            # Log successful operation for monitoring and debugging
             logger.info(f"Retrieved app list summary: {result['total_apps']} total apps")
             return summary
 
     except Exception as e:
+        # Log the error with context for debugging
         logger.error(f"Failed to get app list summary: {e}")
+        # Re-raise as DatabaseError for consistent error handling
         raise DatabaseError(f"Failed to get app list summary: {str(e)}")
 
 def _row_to_dict(row) -> Dict[str, Any]:
