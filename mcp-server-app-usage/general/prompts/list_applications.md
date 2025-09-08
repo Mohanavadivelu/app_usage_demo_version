@@ -31,6 +31,7 @@ Feature #1 from the original requirements: "Implement an endpoint to list all ap
 ### Basic Usage
 
 List all applications with default settings:
+
 ```json
 Input: {}
 Output: {

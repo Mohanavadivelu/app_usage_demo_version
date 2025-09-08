@@ -19,27 +19,49 @@ Created: 2025-01-08
 Last Modified: 2025-01-08
 """
 
-from mcp.types import Tool, TextContent
-from typing import Dict, Any
-import json
+from typing import Optional, Dict, Any
 import logging
 
+from mcp.server.fastmcp import Context
 from shared.database_utils import execute_analytics_query, validate_parameters, build_query
 
 logger = logging.getLogger(__name__)
 
+# Import the mcp instance from main module
+import sys
+main_module = sys.modules.get('__main__')
+if main_module and hasattr(main_module, 'mcp'):
+    mcp = main_module.mcp
+else:
+    # Fallback for when imported from other contexts
+    from main import mcp
 
-async def tracking_status_handler(arguments: Dict[str, Any]) -> list[TextContent]:
-    """Handle the tracking_status tool request."""
+
+@mcp.tool()
+async def tracking_status(
+    tracking_enabled: Optional[bool] = None,
+    limit: int = 100,
+    ctx: Optional[Context] = None
+) -> Dict[str, Any]:
+    """
+    Check which applications have tracking enabled or disabled.
+    
+    Args:
+        tracking_enabled: Filter by tracking status (true for enabled, false for disabled)
+        limit: Maximum number of applications to return (default: 100, max: 1000)
+        ctx: FastMCP context for logging and progress reporting
+    
+    Returns:
+        Dictionary containing applications with their tracking status
+    """
     try:
-        validated_params = validate_parameters(
-            arguments,
-            required=[],
-            optional=['tracking_enabled', 'limit']
-        )
+        if ctx:
+            filter_desc = f"tracking_enabled={tracking_enabled}" if tracking_enabled is not None else "all applications"
+            ctx.info(f"Checking tracking status for {filter_desc}, limit: {limit}")
         
-        tracking_enabled = validated_params.get('tracking_enabled')
-        limit = validated_params.get('limit', 100)
+        # Validate parameters
+        if limit < 1 or limit > 1000:
+            raise ValueError("limit must be between 1 and 1000")
         
         # Build query
         base_query = """
@@ -60,13 +82,24 @@ async def tracking_status_handler(arguments: Dict[str, Any]) -> list[TextContent
             limit=limit
         )
         
+        if ctx:
+            ctx.debug(f"Executing tracking status query with filters: {filters}")
+        
         result = execute_analytics_query(query, params)
+        
+        if ctx:
+            ctx.info(f"Retrieved {len(result.data)} applications in {result.query_time_ms}ms")
         
         # Process results
         response_data = {
             "tool": "tracking_status",
             "description": "Application tracking status overview",
+            "query_time_ms": result.query_time_ms,
             "total_applications": result.total_count,
+            "filter_applied": {
+                "tracking_enabled": tracking_enabled,
+                "limit": limit
+            },
             "applications": []
         }
         
@@ -96,46 +129,21 @@ async def tracking_status_handler(arguments: Dict[str, Any]) -> list[TextContent
         response_data["summary"] = {
             "tracking_enabled": enabled_count,
             "tracking_disabled": disabled_count,
-            "percentage_enabled": round((enabled_count / result.total_count * 100), 2) if result.total_count > 0 else 0
+            "percentage_enabled": round((enabled_count / len(result.data) * 100), 2) if result.data else 0
         }
         
-        return [TextContent(
-            type="text",
-            text=json.dumps(response_data, indent=2, ensure_ascii=False)
-        )]
+        if ctx:
+            ctx.info(f"Summary: {enabled_count} enabled, {disabled_count} disabled ({response_data['summary']['percentage_enabled']}% enabled)")
+        
+        return response_data
         
     except Exception as e:
-        logger.error(f"Error in tracking_status_handler: {e}")
-        return [TextContent(
-            type="text",
-            text=json.dumps({
-                "tool": "tracking_status",
-                "error": str(e),
-                "message": "Failed to retrieve tracking status"
-            }, indent=2)
-        )]
-
-
-tracking_status_tool = Tool(
-    name="tracking_status",
-    description="Check which applications have tracking enabled or disabled",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "tracking_enabled": {
-                "type": "boolean",
-                "description": "Filter by tracking status (true for enabled, false for disabled)"
-            },
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of applications to return (default: 100)",
-                "minimum": 1,
-                "maximum": 1000,
-                "default": 100
-            }
-        },
-        "additionalProperties": False
-    }
-)
-
-tracking_status_tool.handler = tracking_status_handler
+        logger.error(f"Error in tracking_status: {e}")
+        if ctx:
+            ctx.error(f"Failed to retrieve tracking status: {e}")
+        
+        return {
+            "tool": "tracking_status",
+            "error": str(e),
+            "message": "Failed to retrieve tracking status"
+        }

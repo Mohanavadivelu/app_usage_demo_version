@@ -17,26 +17,46 @@ Created: 2025-01-08
 Last Modified: 2025-01-08
 """
 
-from mcp.types import Tool, TextContent
-from typing import Dict, Any
-import json
+from typing import Optional, Dict, Any
 import logging
 
+from mcp.server.fastmcp import Context
 from shared.database_utils import execute_analytics_query, validate_parameters
 
 logger = logging.getLogger(__name__)
 
+# Import the mcp instance from main module
+import sys
+main_module = sys.modules.get('__main__')
+if main_module and hasattr(main_module, 'mcp'):
+    mcp = main_module.mcp
+else:
+    # Fallback for when imported from other contexts
+    from main import mcp
 
-async def legacy_apps_handler(arguments: Dict[str, Any]) -> list[TextContent]:
-    """Handle the legacy_apps tool request."""
+
+@mcp.tool()
+async def legacy_apps(
+    limit: int = 100,
+    ctx: Optional[Context] = None
+) -> Dict[str, Any]:
+    """
+    List legacy applications with usage statistics.
+    
+    Args:
+        limit: Maximum number of legacy apps to return (default: 100, max: 1000)
+        ctx: FastMCP context for logging and progress reporting
+    
+    Returns:
+        Dictionary containing legacy applications with usage statistics
+    """
     try:
-        validated_params = validate_parameters(
-            arguments,
-            required=[],
-            optional=['limit']
-        )
+        if ctx:
+            ctx.info(f"Retrieving legacy applications, limit: {limit}")
         
-        limit = validated_params.get('limit', 100)
+        # Validate parameters
+        if limit < 1 or limit > 1000:
+            raise ValueError("limit must be between 1 and 1000")
         
         # Get legacy apps from usage data
         query = """
@@ -57,12 +77,22 @@ async def legacy_apps_handler(arguments: Dict[str, Any]) -> list[TextContent]:
         LIMIT ?
         """
         
+        if ctx:
+            ctx.debug("Executing legacy apps query")
+            ctx.report_progress(25, 100, "Querying legacy applications...")
+        
         result = execute_analytics_query(query, (limit,))
+        
+        if ctx:
+            ctx.info(f"Found {len(result.data)} legacy applications in {result.query_time_ms}ms")
+            ctx.report_progress(75, 100, "Processing legacy app data...")
         
         response_data = {
             "tool": "legacy_apps",
             "description": "Legacy applications analysis",
+            "query_time_ms": result.query_time_ms,
             "total_legacy_apps": result.total_count,
+            "limit_applied": limit,
             "legacy_applications": []
         }
         
@@ -91,39 +121,19 @@ async def legacy_apps_handler(arguments: Dict[str, Any]) -> list[TextContent]:
             "average_usage_per_app": round(total_usage_hours / len(result.data), 2) if result.data else 0
         }
         
-        return [TextContent(
-            type="text",
-            text=json.dumps(response_data, indent=2, ensure_ascii=False)
-        )]
+        if ctx:
+            ctx.report_progress(100, 100, "Legacy apps analysis complete")
+            ctx.info(f"Analysis complete: {len(result.data)} legacy apps, {response_data['summary']['total_usage_hours']} total hours")
+        
+        return response_data
         
     except Exception as e:
-        logger.error(f"Error in legacy_apps_handler: {e}")
-        return [TextContent(
-            type="text",
-            text=json.dumps({
-                "tool": "legacy_apps",
-                "error": str(e),
-                "message": "Failed to retrieve legacy applications"
-            }, indent=2)
-        )]
-
-
-legacy_apps_tool = Tool(
-    name="legacy_apps",
-    description="List legacy applications with usage statistics",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of legacy apps to return (default: 100)",
-                "minimum": 1,
-                "maximum": 1000,
-                "default": 100
-            }
-        },
-        "additionalProperties": False
-    }
-)
-
-legacy_apps_tool.handler = legacy_apps_handler
+        logger.error(f"Error in legacy_apps: {e}")
+        if ctx:
+            ctx.error(f"Failed to retrieve legacy applications: {e}")
+        
+        return {
+            "tool": "legacy_apps",
+            "error": str(e),
+            "message": "Failed to retrieve legacy applications"
+        }

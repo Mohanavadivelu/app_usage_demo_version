@@ -16,7 +16,7 @@ Parameters:
     - sort_order (str, optional): Sort order (asc, desc)
 
 Returns:
-    - List of applications with their metadata
+    - Dictionary with application list and metadata
 
 Examples:
     Basic usage:
@@ -39,50 +39,57 @@ Created: 2025-01-08
 Last Modified: 2025-01-08
 """
 
-from mcp.types import Tool, TextContent
-from typing import Dict, Any, Optional
-import json
+from typing import Optional, Dict, Any
 import logging
 
+from mcp.server.fastmcp import Context
 from shared.database_utils import execute_analytics_query, validate_parameters, build_query
 from shared.models import AnalyticsResult
 
 logger = logging.getLogger(__name__)
 
+# Import the mcp instance from main module
+import sys
+import importlib
+main_module = sys.modules.get('__main__')
+if main_module and hasattr(main_module, 'mcp'):
+    mcp = main_module.mcp
+else:
+    # Fallback for when imported from other contexts
+    from main import mcp
 
-async def list_applications_handler(arguments: Dict[str, Any]) -> list[TextContent]:
+
+@mcp.tool()
+async def list_applications(
+    limit: int = 100,
+    app_type: Optional[str] = None,
+    enable_tracking: Optional[bool] = None,
+    sort_by: str = "app_name",
+    sort_order: str = "asc",
+    ctx: Optional[Context] = None
+) -> Dict[str, Any]:
     """
-    Handle the list_applications tool request.
-    
-    This function retrieves all applications from the app_list table
-    with optional filtering and sorting capabilities.
+    List all applications being tracked in the system with optional filtering and sorting.
     
     Args:
-        arguments (dict): Tool arguments containing optional filters
+        limit: Maximum number of applications to return (default: 100, max: 1000)
+        app_type: Filter by application type (e.g., 'productivity', 'entertainment', 'development')
+        enable_tracking: Filter by tracking status (true for enabled, false for disabled)
+        sort_by: Field to sort by (app_name, app_type, released_date, publisher, registered_date)
+        sort_order: Sort order (asc, desc)
+        ctx: FastMCP context for logging and progress reporting
     
     Returns:
-        list[TextContent]: Formatted response with application list
-    
-    Raises:
-        ValueError: If parameters are invalid
-        DatabaseError: If database query fails
+        Dictionary containing application list and metadata
     """
     try:
-        # Validate and process parameters
-        validated_params = validate_parameters(
-            arguments,
-            required=[],
-            optional=['limit', 'app_type', 'enable_tracking', 'sort_by', 'sort_order']
-        )
+        if ctx:
+            ctx.info(f"Listing applications with limit: {limit}, filters: app_type={app_type}, tracking={enable_tracking}")
         
-        # Set defaults
-        limit = validated_params.get('limit', 100)
-        app_type = validated_params.get('app_type')
-        enable_tracking = validated_params.get('enable_tracking')
-        sort_by = validated_params.get('sort_by', 'app_name')
-        sort_order = validated_params.get('sort_order', 'asc')
+        # Validate parameters
+        if limit < 1 or limit > 1000:
+            raise ValueError("limit must be between 1 and 1000")
         
-        # Validate sort parameters
         valid_sort_fields = ['app_name', 'app_type', 'released_date', 'publisher', 'registered_date']
         if sort_by not in valid_sort_fields:
             raise ValueError(f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}")
@@ -125,9 +132,14 @@ async def list_applications_handler(arguments: Dict[str, Any]) -> list[TextConte
             limit=limit
         )
         
+        if ctx:
+            ctx.debug(f"Executing query: {query}")
+        
         # Execute query
-        logger.info(f"Executing list_applications query with filters: {filters}")
         result = execute_analytics_query(query, params)
+        
+        if ctx:
+            ctx.info(f"Retrieved {len(result.data)} applications in {result.query_time_ms}ms")
         
         # Format response
         response_data = {
@@ -196,65 +208,19 @@ async def list_applications_handler(arguments: Dict[str, Any]) -> list[TextConte
                 "top_publishers": sorted(publishers.items(), key=lambda x: x[1], reverse=True)[:5]
             }
         
-        # Format as JSON response
-        formatted_response = json.dumps(response_data, indent=2, ensure_ascii=False)
+        if ctx:
+            ctx.info("Successfully processed application list")
         
-        return [TextContent(
-            type="text",
-            text=formatted_response
-        )]
+        return response_data
         
     except Exception as e:
-        logger.error(f"Error in list_applications_handler: {e}")
+        logger.error(f"Error in list_applications: {e}")
+        if ctx:
+            ctx.error(f"Failed to retrieve application list: {e}")
+        
         error_response = {
             "tool": "list_applications",
             "error": str(e),
             "message": "Failed to retrieve application list"
         }
-        return [TextContent(
-            type="text",
-            text=json.dumps(error_response, indent=2)
-        )]
-
-
-# Define the MCP tool
-list_applications_tool = Tool(
-    name="list_applications",
-    description="List all applications being tracked in the system with optional filtering and sorting",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of applications to return (default: 100, max: 1000)",
-                "minimum": 1,
-                "maximum": 1000,
-                "default": 100
-            },
-            "app_type": {
-                "type": "string",
-                "description": "Filter by application type (e.g., 'productivity', 'entertainment', 'development')"
-            },
-            "enable_tracking": {
-                "type": "boolean",
-                "description": "Filter by tracking status (true for enabled, false for disabled)"
-            },
-            "sort_by": {
-                "type": "string",
-                "description": "Field to sort by",
-                "enum": ["app_name", "app_type", "released_date", "publisher", "registered_date"],
-                "default": "app_name"
-            },
-            "sort_order": {
-                "type": "string",
-                "description": "Sort order",
-                "enum": ["asc", "desc"],
-                "default": "asc"
-            }
-        },
-        "additionalProperties": False
-    }
-)
-
-# Register the handler
-list_applications_tool.handler = list_applications_handler
+        return error_response

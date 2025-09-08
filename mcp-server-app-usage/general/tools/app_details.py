@@ -19,51 +19,74 @@ Created: 2025-01-08
 Last Modified: 2025-01-08
 """
 
-from mcp.types import Tool, TextContent
-from typing import Dict, Any
-import json
+from typing import Optional, Dict, Any
 import logging
 
+from mcp.server.fastmcp import Context
 from shared.database_utils import execute_analytics_query, validate_parameters, build_query
 from shared.models import AnalyticsResult
 
 logger = logging.getLogger(__name__)
 
+# Import the mcp instance from main module
+import sys
+main_module = sys.modules.get('__main__')
+if main_module and hasattr(main_module, 'mcp'):
+    mcp = main_module.mcp
+else:
+    # Fallback for when imported from other contexts
+    from main import mcp
 
-async def app_details_handler(arguments: Dict[str, Any]) -> list[TextContent]:
-    """Handle the app_details tool request."""
+
+@mcp.tool()
+async def app_details(
+    app_name: str,
+    include_usage_stats: bool = False,
+    ctx: Optional[Context] = None
+) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific application.
+    
+    Args:
+        app_name: Name of the application to get details for
+        include_usage_stats: Include usage statistics summary (default: false)
+        ctx: FastMCP context for logging and progress reporting
+    
+    Returns:
+        Dictionary containing detailed application information
+    """
     try:
-        # Validate parameters
-        validated_params = validate_parameters(
-            arguments,
-            required=['app_name'],
-            optional=['include_usage_stats']
-        )
-        
-        app_name = validated_params['app_name']
-        include_usage_stats = validated_params.get('include_usage_stats', False)
+        if ctx:
+            ctx.info(f"Getting details for application: {app_name}")
         
         # Get app details from app_list
         app_query = """
         SELECT * FROM app_list WHERE app_name = ?
         """
+        
+        if ctx:
+            ctx.debug(f"Executing app details query for: {app_name}")
+        
         app_result = execute_analytics_query(app_query, (app_name,))
         
         if not app_result.data:
-            return [TextContent(
-                type="text",
-                text=json.dumps({
-                    "tool": "app_details",
-                    "error": f"Application '{app_name}' not found",
-                    "message": "No application found with the specified name"
-                }, indent=2)
-            )]
+            if ctx:
+                ctx.warning(f"Application '{app_name}' not found")
+            return {
+                "tool": "app_details",
+                "error": f"Application '{app_name}' not found",
+                "message": "No application found with the specified name"
+            }
         
         app_data = app_result.data[0]
+        
+        if ctx:
+            ctx.info(f"Found application: {app_data['app_name']} (ID: {app_data['app_id']})")
         
         # Build response
         response_data = {
             "tool": "app_details",
+            "query_time_ms": app_result.query_time_ms,
             "application": {
                 "app_id": app_data["app_id"],
                 "name": app_data["app_name"],
@@ -86,6 +109,10 @@ async def app_details_handler(arguments: Dict[str, Any]) -> list[TextContent]:
         
         # Add usage statistics if requested
         if include_usage_stats:
+            if ctx:
+                ctx.info("Including usage statistics")
+                ctx.report_progress(50, 100, "Fetching usage statistics...")
+            
             usage_query = """
             SELECT 
                 COUNT(*) as total_sessions,
@@ -111,48 +138,28 @@ async def app_details_handler(arguments: Dict[str, Any]) -> list[TextContent]:
                     "last_usage_date": usage_stats["last_usage_date"],
                     "platforms_used": usage_stats["platforms_used"]
                 }
+                if ctx:
+                    ctx.info(f"Found {usage_stats['total_sessions']} sessions from {usage_stats['unique_users']} users")
             else:
                 response_data["usage_statistics"] = {
                     "message": "No usage data found for this application"
                 }
+                if ctx:
+                    ctx.info("No usage data found for this application")
         
-        return [TextContent(
-            type="text",
-            text=json.dumps(response_data, indent=2, ensure_ascii=False)
-        )]
+        if ctx:
+            ctx.report_progress(100, 100, "Application details retrieved successfully")
+            ctx.info("Successfully retrieved application details")
+        
+        return response_data
         
     except Exception as e:
-        logger.error(f"Error in app_details_handler: {e}")
-        return [TextContent(
-            type="text",
-            text=json.dumps({
-                "tool": "app_details",
-                "error": str(e),
-                "message": "Failed to retrieve application details"
-            }, indent=2)
-        )]
-
-
-# Define the MCP tool
-app_details_tool = Tool(
-    name="app_details",
-    description="Get detailed information about a specific application",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "app_name": {
-                "type": "string",
-                "description": "Name of the application to get details for"
-            },
-            "include_usage_stats": {
-                "type": "boolean",
-                "description": "Include usage statistics summary (default: false)",
-                "default": False
-            }
-        },
-        "required": ["app_name"],
-        "additionalProperties": False
-    }
-)
-
-app_details_tool.handler = app_details_handler
+        logger.error(f"Error in app_details: {e}")
+        if ctx:
+            ctx.error(f"Failed to retrieve application details: {e}")
+        
+        return {
+            "tool": "app_details",
+            "error": str(e),
+            "message": "Failed to retrieve application details"
+        }

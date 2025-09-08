@@ -15,6 +15,7 @@ To use any tool, simply ask the MCP client with natural language. The server wil
 **Tool:** `list_applications`
 
 **Example Prompts:**
+
 ```text
 "Show me all applications being tracked"
 "List all apps in the system"
