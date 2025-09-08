@@ -23,6 +23,9 @@ from server_instance import mcp
 # Import general tools (they will auto-register via decorators)
 import general.tools
 
+# Import version tracking tools (they will auto-register via decorators)
+import version_tracking.tools
+
 # Initialize logging
 logger = logging.getLogger(__name__)
 
