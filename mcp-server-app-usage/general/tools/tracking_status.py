@@ -23,18 +23,12 @@ from typing import Optional, Dict, Any
 import logging
 
 from mcp.server.fastmcp import Context
-from shared.database_utils import execute_analytics_query, validate_parameters, build_query
+from shared.database_utils import execute_analytics_query, build_query
 
 logger = logging.getLogger(__name__)
 
 # Import the mcp instance from main module
-import sys
-main_module = sys.modules.get('__main__')
-if main_module and hasattr(main_module, 'mcp'):
-    mcp = main_module.mcp
-else:
-    # Fallback for when imported from other contexts
-    from main import mcp
+from main import mcp
 
 
 @mcp.tool()
