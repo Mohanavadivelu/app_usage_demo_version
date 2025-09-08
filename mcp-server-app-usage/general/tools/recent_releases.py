@@ -29,7 +29,7 @@ from shared.date_utils import days_ago
 logger = logging.getLogger(__name__)
 
 # Import the mcp instance from main module
-from main import mcp
+from server_instance import mcp
 
 
 @mcp.tool()

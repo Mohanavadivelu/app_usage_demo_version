@@ -47,8 +47,8 @@ from shared.database_utils import execute_analytics_query, build_query
 
 logger = logging.getLogger(__name__)
 
-# Import the mcp instance from main module
-from main import mcp
+# Import the mcp instance from server_instance module
+from server_instance import mcp
 
 
 @mcp.tool()

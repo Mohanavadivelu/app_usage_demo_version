@@ -12,20 +12,19 @@ Last Modified: 2025-01-08
 """
 
 import logging
-from mcp.server.fastmcp import FastMCP
 
 # Import configuration
 from config.settings import get_settings, setup_logging
 from config.database import get_default_config
+
+# Import the centralized MCP server instance
+from server_instance import mcp
 
 # Import general tools (they will auto-register via decorators)
 import general.tools
 
 # Initialize logging
 logger = logging.getLogger(__name__)
-
-# Create FastMCP server instance
-mcp = FastMCP("app-usage-analytics")
 
 
 def main():

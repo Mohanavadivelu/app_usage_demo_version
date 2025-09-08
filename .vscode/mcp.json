@@ -1,0 +1,20 @@
+{
+  "servers": {
+    "app-usage-analytics": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "${workspaceFolder}/mcp-server-app-usage/main.py"
+      ]
+    }
+  },
+  "tools": [
+    "list_applications",
+    "app_details",
+    "tracking_status",
+    "legacy_apps",
+    "recent_releases",
+    "top_publishers",
+    "app_versions"
+  ]
+}
