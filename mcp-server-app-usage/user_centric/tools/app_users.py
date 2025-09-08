@@ -125,8 +125,8 @@ app_users_tool = Tool(
                 "maximum": 1000,
                 "default": 100
         }
-,
-        "required": ['application_name'],
+        },
+        "required": ["application_name"],
         "additionalProperties": False
     }
 )

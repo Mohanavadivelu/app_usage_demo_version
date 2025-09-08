@@ -101,8 +101,8 @@ user_last_app_tool = Tool(
                 "type": "string",
                 "description": "User identifier to analyze"
         }
-,
-        "required": ['user'],
+        },
+        "required": ["user"],
         "additionalProperties": False
     }
 )

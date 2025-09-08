@@ -113,18 +113,17 @@ total_usage_period_tool = Tool(
                 "type": "string",
                 "description": "Start Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        },
-        "end_date": {
+            },
+            "end_date": {
                 "type": "string",
                 "description": "End Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        },
-        "period_type": {
+            },
+            "period_type": {
                 "type": "string",
                 "description": "Period Type parameter"
-        }
-,
-        
+            }
+        },
         "additionalProperties": False
     }
 )

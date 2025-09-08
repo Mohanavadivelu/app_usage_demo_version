@@ -114,26 +114,25 @@ platform_usage_stats_tool = Tool(
             "platform": {
                 "type": "string",
                 "description": "Platform parameter"
-        },
-        "limit": {
+            },
+            "limit": {
                 "type": "integer",
                 "description": "Maximum number of results (default: 100)",
                 "minimum": 1,
                 "maximum": 1000,
                 "default": 100
-        },
-        "start_date": {
+            },
+            "start_date": {
                 "type": "string",
                 "description": "Start Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        },
-        "end_date": {
+            },
+            "end_date": {
                 "type": "string",
                 "description": "End Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        }
-,
-        
+            }
+        },
         "additionalProperties": False
     }
 )

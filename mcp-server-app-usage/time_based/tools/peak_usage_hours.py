@@ -123,9 +123,8 @@ peak_usage_hours_tool = Tool(
         "application_name": {
                 "type": "string",
                 "description": "Application name to analyze"
-        }
-,
-        
+            }
+        },
         "additionalProperties": False
     }
 )

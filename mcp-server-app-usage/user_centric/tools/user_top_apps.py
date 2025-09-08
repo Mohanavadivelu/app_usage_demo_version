@@ -122,8 +122,8 @@ user_top_apps_tool = Tool(
                 "description": "End Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
         }
-,
-        "required": ['user'],
+        },
+        "required": ["user"],
         "additionalProperties": False
     }
 )

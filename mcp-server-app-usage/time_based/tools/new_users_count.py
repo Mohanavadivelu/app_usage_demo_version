@@ -121,9 +121,8 @@ new_users_count_tool = Tool(
         "period_type": {
                 "type": "string",
                 "description": "Period Type parameter"
-        }
-,
-        
+            }
+        },
         "additionalProperties": False
     }
 )

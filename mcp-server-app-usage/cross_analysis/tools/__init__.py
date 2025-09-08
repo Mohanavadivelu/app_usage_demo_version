@@ -18,7 +18,7 @@ import logging
 from .user_app_matrix import user_app_matrix_tool
 from .multi_app_users import multi_app_users_tool
 from .common_app_combinations import common_app_combinations_tool
-from .usage_percentage_breakdown import user_app_usage_percentage_tool
+from .usage_percentage_breakdown import usage_percentage_breakdown_tool
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +41,8 @@ def register_cross_analysis_tools(server: Server) -> List[str]:
         registered_tools.append("common_app_combinations")
         
         # Feature 32: Calculate percentage of total usage time per application per user
-        server.register_tool(user_app_usage_percentage_tool)
-        registered_tools.append("user_app_usage_percentage")
+        server.register_tool(usage_percentage_breakdown_tool)
+        registered_tools.append("usage_percentage_breakdown")
         
         logger.info(f"Successfully registered {len(registered_tools)} cross analysis tools")
         
@@ -58,5 +58,5 @@ __all__ = [
     "user_app_matrix_tool",
     "multi_app_users_tool", 
     "common_app_combinations_tool",
-    "user_app_usage_percentage_tool"
+    "usage_percentage_breakdown_tool"
 ]

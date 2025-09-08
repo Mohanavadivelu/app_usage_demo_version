@@ -107,26 +107,26 @@ user_applications_tool = Tool(
             "user": {
                 "type": "string",
                 "description": "User identifier to analyze"
-        },
-        "start_date": {
+            },
+            "start_date": {
                 "type": "string",
                 "description": "Start Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        },
-        "end_date": {
+            },
+            "end_date": {
                 "type": "string",
                 "description": "End Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        },
-        "limit": {
+            },
+            "limit": {
                 "type": "integer",
                 "description": "Maximum number of results (default: 100)",
                 "minimum": 1,
                 "maximum": 1000,
                 "default": 100
-        }
-,
-        "required": ['user'],
+            }
+        },
+        "required": ["user"],
         "additionalProperties": False
     }
 )

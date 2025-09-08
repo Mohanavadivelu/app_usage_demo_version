@@ -81,8 +81,8 @@ async def user_app_matrix_handler(arguments: Dict[str, Any]) -> list[TextContent
             hours = round(record['total_seconds'] / 3600, 2)
             
             if user not in user_app_matrix:
-        user_app_matrix[user] = {}
-        total_usage_by_user[user] = 0
+                user_app_matrix[user] = {}
+                total_usage_by_user[user] = 0
             
             user_app_matrix[user][app] = {
                 'total_hours': hours,
@@ -97,8 +97,8 @@ async def user_app_matrix_handler(arguments: Dict[str, Any]) -> list[TextContent
         for user, apps in user_app_matrix.items():
             user_total = total_usage_by_user[user]
             for app, data in apps.items():
-        usage_percentage = round((data['total_hours'] / user_total) * 100, 2) if user_total > 0 else 0
-        matrix_results.append({
+                usage_percentage = round((data['total_hours'] / user_total) * 100, 2) if user_total > 0 else 0
+                matrix_results.append({
                     'user': user,
                     'application_name': app,
                     'total_hours': data['total_hours'],

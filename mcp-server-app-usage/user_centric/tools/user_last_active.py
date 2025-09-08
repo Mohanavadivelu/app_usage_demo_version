@@ -100,8 +100,8 @@ user_last_active_tool = Tool(
                 "type": "string",
                 "description": "User identifier to analyze"
         }
-,
-        "required": ['user'],
+        },
+        "required": ["user"],
         "additionalProperties": False
     }
 )

@@ -126,8 +126,7 @@ onboarding_trend_tool = Tool(
                 "maximum": 1000,
                 "default": 100
         }
-,
-        
+        },
         "additionalProperties": False
     }
 )

@@ -117,9 +117,8 @@ usage_comparison_tool = Tool(
         "period2_end": {
                 "type": "string",
                 "description": "Period2 End parameter"
-        }
-,
-        
+            }
+        },
         "additionalProperties": False
     }
 )

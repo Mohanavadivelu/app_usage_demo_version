@@ -117,26 +117,25 @@ top_apps_by_users_tool = Tool(
                 "minimum": 1,
                 "maximum": 100,
                 "default": 10
-        },
-        "start_date": {
+            },
+            "start_date": {
                 "type": "string",
                 "description": "Start Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        },
-        "end_date": {
+            },
+            "end_date": {
                 "type": "string",
                 "description": "End Date for analysis (YYYY-MM-DD format)",
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        },
-        "min_users": {
+            },
+            "min_users": {
                 "type": "integer",
                 "description": "Minimum users (default: 1)",
                 "minimum": 1,
                 "maximum": 100,
                 "default": 1
-        }
-,
-        
+            }
+        },
         "additionalProperties": False
     }
 )

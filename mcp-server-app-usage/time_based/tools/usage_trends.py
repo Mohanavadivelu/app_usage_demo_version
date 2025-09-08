@@ -128,9 +128,8 @@ usage_trends_tool = Tool(
         "application_name": {
                 "type": "string",
                 "description": "Application name to analyze"
-        }
-,
-        
+            }
+        },
         "additionalProperties": False
     }
 )
