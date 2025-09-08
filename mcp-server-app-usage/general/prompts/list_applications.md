@@ -1,9 +1,11 @@
 # List Applications - Prompt Documentation
 
 ## Overview
+
 The `list_applications` tool provides a comprehensive view of all applications being tracked in the system. It retrieves data from the `app_list` table and offers flexible filtering and sorting options to help users find specific applications or analyze the application catalog.
 
 ## Feature ID
+
 Feature #1 from the original requirements: "Implement an endpoint to list all applications being tracked."
 
 ## Parameters
@@ -17,6 +19,7 @@ Feature #1 from the original requirements: "Implement an endpoint to list all ap
 | sort_order | string | No | Sort order: "asc" or "desc" (default: "asc") | "desc" |
 
 ### Valid sort_by values:
+
 - `app_name`: Sort by application name
 - `app_type`: Sort by application type/category
 - `released_date`: Sort by release date
@@ -26,6 +29,7 @@ Feature #1 from the original requirements: "Implement an endpoint to list all ap
 ## Usage Examples
 
 ### Basic Usage
+
 List all applications with default settings:
 ```json
 Input: {}
@@ -52,9 +56,10 @@ Output: {
     }
   ]
 }
-```
+```text
 
 ### Filtered Usage
+
 Get productivity applications with tracking enabled:
 ```json
 Input: {
@@ -76,9 +81,10 @@ Output: {
   },
   "applications": [...]
 }
-```
+```text
 
 ### Publisher Analysis
+
 List applications sorted by publisher:
 ```json
 Input: {
@@ -86,7 +92,7 @@ Input: {
   "sort_order": "asc",
   "limit": 20
 }
-```
+```text
 
 ## Response Structure
 
@@ -143,13 +149,14 @@ The tool returns a JSON object with the following structure:
     ]
   }
 }
-```
+```text
 
 ## Database Queries
+
 The tool executes queries against the `app_list` table:
 
 ```sql
-SELECT 
+SELECT
     app_id, app_name, app_type, current_version, released_date,
     publisher, description, download_link, enable_tracking,
     track_usage, track_location, track_cm, track_intr, registered_date
@@ -157,38 +164,43 @@ FROM app_list
 WHERE [optional filters]
 ORDER BY [sort_field] [sort_order]
 LIMIT [limit]
-```
+```text
 
 ## Error Handling
 
 ### Common Errors:
+
 1. **Invalid sort_by field**: Returns error if sort_by is not in allowed values
 2. **Invalid sort_order**: Returns error if sort_order is not 'asc' or 'desc'
 3. **Invalid limit**: Returns error if limit is not between 1 and 1000
 4. **Database connection error**: Returns error if database is unavailable
 
 ### Error Response Format:
+
 ```json
 {
   "tool": "list_applications",
   "error": "Invalid sort_by field. Must be one of: app_name, app_type, released_date, publisher, registered_date",
   "message": "Failed to retrieve application list"
 }
-```
+```text
 
 ## Performance Considerations
+
 - Default limit of 100 applications for reasonable response times
 - Maximum limit of 1000 to prevent excessive memory usage
 - Indexed fields (app_name, app_type, publisher) provide faster sorting
 - Query execution time is included in response for monitoring
 
 ## Related Features
+
 - **app_details**: Get detailed information about a specific application
 - **tracking_status**: Check tracking configuration for applications
 - **recent_releases**: List recently released applications
 - **top_publishers**: Get publishers with most applications
 
 ## Use Cases
+
 1. **Application Catalog Management**: View all tracked applications
 2. **Tracking Configuration Audit**: Find applications with specific tracking settings
 3. **Publisher Analysis**: Analyze applications by publisher
@@ -196,6 +208,7 @@ LIMIT [limit]
 5. **Release Date Analysis**: Sort applications by release timeline
 
 ## Integration Notes
+
 - This tool provides the foundation for other application-related queries
 - Results can be used as input for detailed analysis tools
 - Supports pagination through the limit parameter
