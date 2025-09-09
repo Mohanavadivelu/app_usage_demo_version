@@ -12,6 +12,10 @@ from .models import AppUsageCreate, AppUsageUpdate, AppUsage
 
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# SECTION 1: CREATE OPERATIONS
+# ============================================================================
+
 @handle_database_error
 def create_app_usage(app_usage: AppUsageCreate) -> int:
     """
@@ -125,6 +129,10 @@ def create_or_update_app_usage(app_usage: AppUsageCreate) -> int:
         logger.error(f"Failed to create/update app usage for user {app_usage.user}, app {app_usage.application_name}: {e}")
         raise DatabaseError(f"Failed to create/update app usage: {str(e)}")
 
+# ============================================================================
+# SECTION 2: READ OPERATIONS
+# ============================================================================
+
 @handle_database_error
 def get_app_usage_by_id(usage_id: int) -> Optional[Dict[str, Any]]:
     """Get app usage record by ID."""
@@ -176,6 +184,10 @@ def get_app_usage_list(skip: int = 0, limit: int = 100) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to retrieve app usage list: {e}")
         raise DatabaseError(f"Failed to retrieve app usage list: {str(e)}")
+
+# ============================================================================
+# SECTION 3: UPDATE & DELETE OPERATIONS
+# ============================================================================
 
 @handle_database_error
 def update_app_usage(usage_id: int, app_usage_update: AppUsageUpdate) -> bool:
@@ -241,6 +253,10 @@ def delete_app_usage(usage_id: int) -> bool:
     except Exception as e:
         logger.error(f"Failed to delete app usage record (ID: {usage_id}): {e}")
         raise DatabaseError(f"Failed to delete app usage record: {str(e)}")
+
+# ============================================================================
+# SECTION 4: ANALYTICS OPERATIONS
+# ============================================================================
 
 @handle_database_error
 def get_application_analytics(application_name: str) -> Dict[str, Any]:
@@ -369,6 +385,10 @@ def get_user_analytics(user: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to get analytics for user {user}: {e}")
         raise DatabaseError(f"Failed to get analytics for user {user}: {str(e)}")
+
+# ============================================================================
+# SECTION 5: UTILITY FUNCTIONS
+# ============================================================================
 
 def _row_to_dict(row) -> Dict[str, Any]:
     """Convert a database row to the expected dictionary format."""

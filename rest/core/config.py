@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     API_KEY_NAME: str = Field(default="X-API-Key-725d9439", description="API key header name")
 
     # CORS settings
-    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:8000"], description="Allowed CORS origins")
+    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:8000", "null"], description="Allowed CORS origins")
     CORS_ALLOW_CREDENTIALS: bool = Field(default=True, description="Allow credentials in CORS")
     CORS_ALLOW_METHODS: List[str] = Field(default=["GET", "POST", "PUT", "DELETE", "OPTIONS"], description="Allowed CORS methods")
     CORS_ALLOW_HEADERS: List[str] = Field(default=["*"], description="Allowed CORS headers")

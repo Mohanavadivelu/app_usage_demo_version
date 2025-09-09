@@ -10,6 +10,10 @@ from .models import AppListCreate, AppListUpdate, flatten_tracking_config
 
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# SECTION 1: CREATE OPERATIONS
+# ============================================================================
+
 @handle_database_error
 def create_app_list(app_list: AppListCreate) -> int:
     """
@@ -125,6 +129,10 @@ def create_or_update_app_list(app_list: AppListCreate) -> int:
         logger.error(f"Failed to create/update app list entry for {app_list.app_name}: {e}")
         raise DatabaseError(f"Failed to create/update app list entry: {str(e)}")
 
+# ============================================================================
+# SECTION 2: READ OPERATIONS
+# ============================================================================
+
 @handle_database_error
 def get_app_list_by_id(app_id: int) -> Optional[Dict[str, Any]]:
     """Get app list entry by ID."""
@@ -176,71 +184,6 @@ def get_app_list(skip: int = 0, limit: int = 100) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to retrieve app list: {e}")
         raise DatabaseError(f"Failed to retrieve app list: {str(e)}")
-
-@handle_database_error
-def update_app_list(app_id: int, app_list_update: AppListUpdate) -> bool:
-    """Update app list entry."""
-    try:
-        # Get current record
-        current_record = get_app_list_by_id(app_id)
-        if not current_record:
-            raise NotFoundError(f"App list entry not found (ID: {app_id})")
-
-        # Build update query dynamically
-        update_fields = []
-        update_values = []
-        
-        for field, value in app_list_update.dict(exclude_unset=True).items():
-            if field == 'track' and value is not None:
-                # Handle tracking configuration
-                tracking_config = flatten_tracking_config(value)
-                for track_field, track_value in tracking_config.items():
-                    update_fields.append(f'{track_field} = ?')
-                    update_values.append(track_value)
-            elif value is not None:
-                update_fields.append(f'{field} = ?')
-                update_values.append(value)
-        
-        if not update_fields:
-            logger.info(f"No fields to update for app list entry (ID: {app_id})")
-            return True
-
-        update_values.append(app_id)
-
-        with get_db_transaction() as conn:
-            cursor = conn.cursor()
-            query = f"UPDATE app_list SET {', '.join(update_fields)} WHERE app_id = ?"
-            cursor.execute(query, update_values)
-            
-            if cursor.rowcount > 0:
-                logger.info(f"Successfully updated app list entry (ID: {app_id})")
-                return True
-            else:
-                logger.warning(f"No rows updated for app list entry (ID: {app_id})")
-                return False
-
-    except Exception as e:
-        logger.error(f"Failed to update app list entry (ID: {app_id}): {e}")
-        raise DatabaseError(f"Failed to update app list entry: {str(e)}")
-
-@handle_database_error
-def delete_app_list(app_id: int) -> bool:
-    """Delete app list entry."""
-    try:
-        with get_db_transaction() as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM app_list WHERE app_id = ?", (app_id,))
-            
-            if cursor.rowcount > 0:
-                logger.info(f"Successfully deleted app list entry (ID: {app_id})")
-                return True
-            else:
-                logger.warning(f"App list entry not found for deletion (ID: {app_id})")
-                return False
-
-    except Exception as e:
-        logger.error(f"Failed to delete app list entry (ID: {app_id}): {e}")
-        raise DatabaseError(f"Failed to delete app list entry: {str(e)}")
 
 @handle_database_error
 def get_app_list_by_name(app_name: str) -> List[Dict[str, Any]]:
@@ -383,6 +326,79 @@ def get_app_list_summary() -> Dict[str, Any]:
         logger.error(f"Failed to get app list summary: {e}")
         # Re-raise as DatabaseError for consistent error handling
         raise DatabaseError(f"Failed to get app list summary: {str(e)}")
+
+# ============================================================================
+# SECTION 3: UPDATE & DELETE OPERATIONS
+# ============================================================================
+
+@handle_database_error
+def update_app_list(app_id: int, app_list_update: AppListUpdate) -> bool:
+    """Update app list entry."""
+    try:
+        # Get current record
+        current_record = get_app_list_by_id(app_id)
+        if not current_record:
+            raise NotFoundError(f"App list entry not found (ID: {app_id})")
+
+        # Build update query dynamically
+        update_fields = []
+        update_values = []
+        
+        for field, value in app_list_update.dict(exclude_unset=True).items():
+            if field == 'track' and value is not None:
+                # Handle tracking configuration
+                tracking_config = flatten_tracking_config(value)
+                for track_field, track_value in tracking_config.items():
+                    update_fields.append(f'{track_field} = ?')
+                    update_values.append(track_value)
+            elif value is not None:
+                update_fields.append(f'{field} = ?')
+                update_values.append(value)
+        
+        if not update_fields:
+            logger.info(f"No fields to update for app list entry (ID: {app_id})")
+            return True
+
+        update_values.append(app_id)
+
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+            query = f"UPDATE app_list SET {', '.join(update_fields)} WHERE app_id = ?"
+            cursor.execute(query, update_values)
+            
+            if cursor.rowcount > 0:
+                logger.info(f"Successfully updated app list entry (ID: {app_id})")
+                return True
+            else:
+                logger.warning(f"No rows updated for app list entry (ID: {app_id})")
+                return False
+
+    except Exception as e:
+        logger.error(f"Failed to update app list entry (ID: {app_id}): {e}")
+        raise DatabaseError(f"Failed to update app list entry: {str(e)}")
+
+@handle_database_error
+def delete_app_list(app_id: int) -> bool:
+    """Delete app list entry."""
+    try:
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM app_list WHERE app_id = ?", (app_id,))
+            
+            if cursor.rowcount > 0:
+                logger.info(f"Successfully deleted app list entry (ID: {app_id})")
+                return True
+            else:
+                logger.warning(f"App list entry not found for deletion (ID: {app_id})")
+                return False
+
+    except Exception as e:
+        logger.error(f"Failed to delete app list entry (ID: {app_id}): {e}")
+        raise DatabaseError(f"Failed to delete app list entry: {str(e)}")
+
+# ============================================================================
+# SECTION 4: UTILITY FUNCTIONS
+# ============================================================================
 
 def _row_to_dict(row) -> Dict[str, Any]:
     """Convert a database row to the expected dictionary format."""

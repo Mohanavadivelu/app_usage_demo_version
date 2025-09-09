@@ -25,6 +25,10 @@ except Exception as e:
 # APIRouter for app list endpoints
 router = APIRouter(prefix="/app_list", tags=["App List"])
 
+# ============================================================================
+# SECTION 1: CREATE ENDPOINTS
+# ============================================================================
+
 @router.post("/", response_model=int, dependencies=[Depends(get_api_key)])
 def create_app_list_entry(app_list: AppListCreate):
     """
@@ -123,6 +127,10 @@ def create_or_update_app_list_entry(app_list: AppListCreate):
         log_error(e, {"app_name": app_list.app_name, "operation": "upsert_app_list"})
         raise HTTPException(status_code=500, detail="Internal server error")
 
+# ============================================================================
+# SECTION 2: READ ENDPOINTS
+# ============================================================================
+
 @router.get("/", response_model=AppListListResponse, dependencies=[Depends(get_api_key)])
 def list_app_list_entries(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
@@ -172,6 +180,10 @@ def get_app_list_entry(app_id: int):
     except Exception as e:
         log_error(e, {"operation": "get_app_list", "app_id": app_id})
         raise HTTPException(status_code=500, detail="Internal server error")
+
+# ============================================================================
+# SECTION 3: UPDATE & DELETE ENDPOINTS
+# ============================================================================
 
 @router.put("/{app_id}", response_model=bool, dependencies=[Depends(get_api_key)])
 def update_app_list_entry(app_id: int, app_list_update: AppListUpdate):

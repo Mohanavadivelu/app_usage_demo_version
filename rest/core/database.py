@@ -9,6 +9,10 @@ from contextlib import contextmanager
 from typing import Optional, Generator
 from queue import Queue, Empty
 
+# ============================================================================
+# SECTION 1: DATABASE CONNECTION & POOLING
+# ============================================================================
+
 class DatabaseError(Exception):
     """Custom exception for database operations."""
     pass
@@ -79,6 +83,10 @@ class ConnectionPool:
             except:
                 pass
         self._created_connections = 0
+
+# ============================================================================
+# SECTION 2: DATABASE MANAGEMENT
+# ============================================================================
 
 class DatabaseManager:
     """Manages SQLite database connections and operations for app_usage.db."""
@@ -160,6 +168,10 @@ class DatabaseManager:
         finally:
             if conn:
                 self.return_connection(conn)
+    
+    # ========================================================================
+    # SECTION 3: TABLE INITIALIZATION
+    # ========================================================================
     
     def init_app_usage_table(self):
         """Initialize the app_usage table."""
@@ -249,6 +261,10 @@ class DatabaseManager:
         if self._pool:
             self._pool.close_all()
             self._pool = None
+
+# ============================================================================
+# SECTION 4: GLOBAL INSTANCES & CONVENIENCE FUNCTIONS
+# ============================================================================
 
 # Global database manager instance
 db_manager = DatabaseManager()
