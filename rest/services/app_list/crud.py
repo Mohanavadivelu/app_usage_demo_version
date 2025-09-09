@@ -347,7 +347,18 @@ def update_app_list(app_id: int, app_list_update: AppListUpdate) -> bool:
         for field, value in app_list_update.dict(exclude_unset=True).items():
             if field == 'track' and value is not None:
                 # Handle tracking configuration
-                tracking_config = flatten_tracking_config(value)
+                if hasattr(value, 'usage'):
+                    # It's a TrackingConfig object
+                    tracking_config = flatten_tracking_config(value)
+                else:
+                    # It's a dictionary, flatten it manually
+                    tracking_config = {
+                        'track_usage': value.get('usage', False),
+                        'track_location': value.get('location', False),
+                        'track_cm': value.get('cpu_memory', {}).get('track_cm', False),
+                        'track_intr': value.get('cpu_memory', {}).get('track_intr', 1)
+                    }
+                
                 for track_field, track_value in tracking_config.items():
                     update_fields.append(f'{track_field} = ?')
                     update_values.append(track_value)
