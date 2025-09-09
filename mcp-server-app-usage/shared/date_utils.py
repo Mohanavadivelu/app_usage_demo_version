@@ -422,3 +422,70 @@ def get_hour_from_timestamp(timestamp: str) -> int:
             continue
     
     raise ValueError(f"Unable to parse timestamp: {timestamp}")
+
+
+def validate_date_range(start_date: Optional[str], end_date: Optional[str]) -> dict:
+    """
+    Validate a date range and return validation result.
+    
+    Args:
+        start_date (str, optional): Start date string (YYYY-MM-DD)
+        end_date (str, optional): End date string (YYYY-MM-DD)
+    
+    Returns:
+        dict: Validation result with 'valid' boolean and 'message' string
+    
+    Example:
+        >>> result = validate_date_range("2024-01-01", "2024-01-31")
+        >>> print(result)
+        {'valid': True, 'message': 'Date range is valid'}
+    """
+    try:
+        if start_date is None and end_date is None:
+            return {"valid": True, "message": "No date range specified"}
+        
+        if start_date is not None:
+            try:
+                parse_date(start_date)
+            except ValueError as e:
+                return {"valid": False, "message": f"Invalid start_date: {str(e)}"}
+        
+        if end_date is not None:
+            try:
+                parse_date(end_date)
+            except ValueError as e:
+                return {"valid": False, "message": f"Invalid end_date: {str(e)}"}
+        
+        if start_date is not None and end_date is not None:
+            start_obj = parse_date(start_date)
+            end_obj = parse_date(end_date)
+            
+            if start_obj > end_obj:
+                return {"valid": False, "message": "Start date cannot be after end date"}
+        
+        return {"valid": True, "message": "Date range is valid"}
+        
+    except Exception as e:
+        return {"valid": False, "message": f"Date validation error: {str(e)}"}
+
+
+def format_date_for_db(date_string: str) -> str:
+    """
+    Format a date string for database storage (ensures YYYY-MM-DD format).
+    
+    Args:
+        date_string (str): Date string to format
+    
+    Returns:
+        str: Formatted date string in YYYY-MM-DD format
+    
+    Example:
+        >>> formatted = format_date_for_db("2024-01-15")
+        >>> print(formatted)
+        2024-01-15
+    """
+    try:
+        date_obj = parse_date(date_string)
+        return format_date(date_obj, "%Y-%m-%d")
+    except ValueError as e:
+        raise ValueError(f"Cannot format date for database: {str(e)}")

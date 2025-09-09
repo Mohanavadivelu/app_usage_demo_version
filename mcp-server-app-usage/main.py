@@ -26,6 +26,21 @@ import general.tools
 # Import version tracking tools (they will auto-register via decorators)
 import version_tracking.tools
 
+# Import advanced analytics tools (they will auto-register via decorators)
+import advanced.tools
+
+# Import cross analysis tools (they will auto-register via decorators)
+import cross_analysis.tools
+
+# Import time-based analytics tools (they will auto-register via decorators)
+import time_based.tools
+
+# Import usage statistics tools (they will auto-register via decorators)
+import usage_stats.tools
+
+# Import user-centric analytics tools (they will auto-register via decorators)
+import user_centric.tools
+
 # Initialize logging
 logger = logging.getLogger(__name__)
 
