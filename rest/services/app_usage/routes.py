@@ -190,101 +190,6 @@ def delete_app_usage_record(usage_id: int):
         log_error(e, {"operation": "delete_app_usage", "usage_id": usage_id})
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/analytics/{application_name}", response_model=AppUsageAnalytics, dependencies=[Depends(get_api_key)])
-def get_application_analytics(application_name: str):
-    """
-    Get analytics for a specific application: user count, total usage hours, and record count.
-    
-    Args:
-        application_name: Name of the application (e.g., "chrome", "code")
-    
-    Returns:
-        - application: Application name
-        - user_count: Number of unique users
-        - total_hours: Total usage time in HH:MM:SS format
-        - total_records: Total number of usage records
-    
-    Example:
-        curl -X GET "http://localhost:8000/api/v1/app_usage/analytics/chrome" \
-        -H "X-API-Key-725d9439: CyRLgKg-FL7RuTtVvb7BPr8wmUoI1PamDj4Xdb3eT9w"
-    """
-    try:
-        analytics = crud.get_application_analytics(application_name)
-        return analytics
-    except Exception as e:
-        log_error(e, {"operation": "get_application_analytics", "application": application_name})
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.get("/analytics/{application_name}/date-range", response_model=AppUsageAnalyticsWithDateRange, dependencies=[Depends(get_api_key)])
-def get_application_analytics_by_date_range(
-    application_name: str,
-    start_date: str = Query(..., description="Start date in YYYY-MM-DD format"),
-    end_date: str = Query(..., description="End date in YYYY-MM-DD format")
-):
-    """
-    Get analytics for a specific application within a date range.
-    
-    Args:
-        application_name: Name of the application (e.g., "chrome", "code")
-        start_date: Start date in YYYY-MM-DD format
-        end_date: End date in YYYY-MM-DD format
-    
-    Returns:
-        - application: Application name
-        - user_count: Number of unique users in the date range
-        - total_hours: Total usage time in HH:MM:SS format
-        - total_records: Total number of usage records
-        - start_date: Start date of the range
-        - end_date: End date of the range
-    
-    Example:
-        curl -X GET "http://localhost:8000/api/v1/app_usage/analytics/chrome/date-range?start_date=2025-01-01&end_date=2025-01-31" \
-        -H "X-API-Key-725d9439: CyRLgKg-FL7RuTtVvb7BPr8wmUoI1PamDj4Xdb3eT9w"
-    """
-    # Validate date format (basic validation)
-    try:
-        from datetime import datetime
-        datetime.strptime(start_date, '%Y-%m-%d')
-        datetime.strptime(end_date, '%Y-%m-%d')
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
-    
-    # Validate date range
-    if start_date > end_date:
-        raise HTTPException(status_code=400, detail="start_date must be before or equal to end_date")
-    
-    try:
-        analytics = crud.get_application_analytics_by_date_range(application_name, start_date, end_date)
-        return analytics
-    except Exception as e:
-        log_error(e, {"operation": "get_application_analytics_date_range", "application": application_name, "start_date": start_date, "end_date": end_date})
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.get("/user-analytics/{user}", response_model=UserUsageAnalytics, dependencies=[Depends(get_api_key)])
-def get_user_analytics(user: str):
-    """
-    Get analytics for a specific user: application count, total usage hours, and record count.
-    
-    Args:
-        user: Username
-    
-    Returns:
-        - user: Username
-        - total_applications: Number of unique applications used
-        - total_hours: Total usage time in HH:MM:SS format
-        - total_records: Total number of usage records
-    
-    Example:
-        curl -X GET "http://localhost:8000/api/v1/app_usage/user-analytics/vroot" \
-        -H "X-API-Key-725d9439: CyRLgKg-FL7RuTtVvb7BPr8wmUoI1PamDj4Xdb3eT9w"
-    """
-    try:
-        analytics = crud.get_user_analytics(user)
-        return analytics
-    except Exception as e:
-        log_error(e, {"operation": "get_user_analytics", "user": user})
-        raise HTTPException(status_code=500, detail="Internal server error")
-
 # ============================================================================
 # SECTION 4: KPI DASHBOARD ANALYTICS ENDPOINTS
 # ============================================================================
@@ -421,4 +326,99 @@ def get_dashboard_summary(
         return result
     except Exception as e:
         log_error(e, {"operation": "get_dashboard_summary", "period": period})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/analytics/{application_name}", response_model=AppUsageAnalytics, dependencies=[Depends(get_api_key)])
+def get_application_analytics(application_name: str):
+    """
+    Get analytics for a specific application: user count, total usage hours, and record count.
+    
+    Args:
+        application_name: Name of the application (e.g., "chrome", "code")
+    
+    Returns:
+        - application: Application name
+        - user_count: Number of unique users
+        - total_hours: Total usage time in HH:MM:SS format
+        - total_records: Total number of usage records
+    
+    Example:
+        curl -X GET "http://localhost:8000/api/v1/app_usage/analytics/chrome" \
+        -H "X-API-Key-725d9439: CyRLgKg-FL7RuTtVvb7BPr8wmUoI1PamDj4Xdb3eT9w"
+    """
+    try:
+        analytics = crud.get_application_analytics(application_name)
+        return analytics
+    except Exception as e:
+        log_error(e, {"operation": "get_application_analytics", "application": application_name})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/analytics/{application_name}/date-range", response_model=AppUsageAnalyticsWithDateRange, dependencies=[Depends(get_api_key)])
+def get_application_analytics_by_date_range(
+    application_name: str,
+    start_date: str = Query(..., description="Start date in YYYY-MM-DD format"),
+    end_date: str = Query(..., description="End date in YYYY-MM-DD format")
+):
+    """
+    Get analytics for a specific application within a date range.
+    
+    Args:
+        application_name: Name of the application (e.g., "chrome", "code")
+        start_date: Start date in YYYY-MM-DD format
+        end_date: End date in YYYY-MM-DD format
+    
+    Returns:
+        - application: Application name
+        - user_count: Number of unique users in the date range
+        - total_hours: Total usage time in HH:MM:SS format
+        - total_records: Total number of usage records
+        - start_date: Start date of the range
+        - end_date: End date of the range
+    
+    Example:
+        curl -X GET "http://localhost:8000/api/v1/app_usage/analytics/chrome/date-range?start_date=2025-01-01&end_date=2025-01-31" \
+        -H "X-API-Key-725d9439: CyRLgKg-FL7RuTtVvb7BPr8wmUoI1PamDj4Xdb3eT9w"
+    """
+    # Validate date format (basic validation)
+    try:
+        from datetime import datetime
+        datetime.strptime(start_date, '%Y-%m-%d')
+        datetime.strptime(end_date, '%Y-%m-%d')
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    # Validate date range
+    if start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must be before or equal to end_date")
+    
+    try:
+        analytics = crud.get_application_analytics_by_date_range(application_name, start_date, end_date)
+        return analytics
+    except Exception as e:
+        log_error(e, {"operation": "get_application_analytics_date_range", "application": application_name, "start_date": start_date, "end_date": end_date})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/user-analytics/{user}", response_model=UserUsageAnalytics, dependencies=[Depends(get_api_key)])
+def get_user_analytics(user: str):
+    """
+    Get analytics for a specific user: application count, total usage hours, and record count.
+    
+    Args:
+        user: Username
+    
+    Returns:
+        - user: Username
+        - total_applications: Number of unique applications used
+        - total_hours: Total usage time in HH:MM:SS format
+        - total_records: Total number of usage records
+    
+    Example:
+        curl -X GET "http://localhost:8000/api/v1/app_usage/user-analytics/vroot" \
+        -H "X-API-Key-725d9439: CyRLgKg-FL7RuTtVvb7BPr8wmUoI1PamDj4Xdb3eT9w"
+    """
+    try:
+        analytics = crud.get_user_analytics(user)
+        return analytics
+    except Exception as e:
+        log_error(e, {"operation": "get_user_analytics", "user": user})
         raise HTTPException(status_code=500, detail="Internal server error")
