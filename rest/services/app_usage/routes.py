@@ -284,3 +284,141 @@ def get_user_analytics(user: str):
     except Exception as e:
         log_error(e, {"operation": "get_user_analytics", "user": user})
         raise HTTPException(status_code=500, detail="Internal server error")
+
+# ============================================================================
+# SECTION 4: KPI DASHBOARD ANALYTICS ENDPOINTS
+# ============================================================================
+
+@router.get("/analytics/active-users", dependencies=[Depends(get_api_key)])
+def get_active_users_count(
+    period: str = Query("30d", description="Time period: 7d, 30d, 90d"),
+    start_date: Optional[str] = Query(None, description="Start date in YYYY-MM-DD format"),
+    end_date: Optional[str] = Query(None, description="End date in YYYY-MM-DD format")
+):
+    """
+    Get count of active users for the specified period.
+    
+    Returns:
+        - active_users: Number of unique active users
+        - period: Time period used
+        - start_date: Actual start date used
+        - end_date: Actual end date used
+        - trend: Percentage change from previous period
+    """
+    try:
+        result = crud.get_active_users_analytics(period, start_date, end_date)
+        return result
+    except Exception as e:
+        log_error(e, {"operation": "get_active_users_count", "period": period})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/analytics/total-hours", dependencies=[Depends(get_api_key)])
+def get_total_usage_hours(
+    period: str = Query("30d", description="Time period: 7d, 30d, 90d"),
+    start_date: Optional[str] = Query(None, description="Start date in YYYY-MM-DD format"),
+    end_date: Optional[str] = Query(None, description="End date in YYYY-MM-DD format")
+):
+    """
+    Get total usage hours for the specified period.
+    
+    Returns:
+        - total_hours: Total usage hours
+        - total_hours_formatted: Formatted as HH:MM:SS
+        - period: Time period used
+        - start_date: Actual start date used
+        - end_date: Actual end date used
+        - trend: Percentage change from previous period
+        - daily_breakdown: Array of daily usage for sparkline
+    """
+    try:
+        result = crud.get_total_hours_analytics(period, start_date, end_date)
+        return result
+    except Exception as e:
+        log_error(e, {"operation": "get_total_usage_hours", "period": period})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/analytics/new-users", dependencies=[Depends(get_api_key)])
+def get_new_users_count(
+    period: str = Query("7d", description="Time period: 7d, 30d"),
+    start_date: Optional[str] = Query(None, description="Start date in YYYY-MM-DD format"),
+    end_date: Optional[str] = Query(None, description="End date in YYYY-MM-DD format")
+):
+    """
+    Get count of new users for the specified period.
+    
+    Returns:
+        - new_users: Number of new users
+        - period: Time period used
+        - start_date: Actual start date used
+        - end_date: Actual end date used
+        - growth_rate: Percentage growth rate
+        - daily_breakdown: Array of daily new users
+    """
+    try:
+        result = crud.get_new_users_analytics(period, start_date, end_date)
+        return result
+    except Exception as e:
+        log_error(e, {"operation": "get_new_users_count", "period": period})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/analytics/top-app", dependencies=[Depends(get_api_key)])
+def get_top_app_by_usage(
+    period: str = Query("30d", description="Time period: 7d, 30d, 90d"),
+    start_date: Optional[str] = Query(None, description="Start date in YYYY-MM-DD format"),
+    end_date: Optional[str] = Query(None, description="End date in YYYY-MM-DD format")
+):
+    """
+    Get the top application by usage for the specified period.
+    
+    Returns:
+        - app_name: Name of the top application
+        - total_hours: Total usage hours
+        - total_hours_formatted: Formatted as HH:MM:SS
+        - user_count: Number of users using this app
+        - period: Time period used
+        - sparkline_data: Array of daily usage for mini chart
+    """
+    try:
+        result = crud.get_top_app_analytics(period, start_date, end_date)
+        return result
+    except Exception as e:
+        log_error(e, {"operation": "get_top_app_by_usage", "period": period})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/analytics/churn-rate", dependencies=[Depends(get_api_key)])
+def get_churn_rate(
+    period: str = Query("30d", description="Time period: 30d, 90d"),
+    cohort_period: str = Query("30d", description="Cohort period: 30d, 90d")
+):
+    """
+    Get user churn rate for the specified period.
+    
+    Returns:
+        - churn_rate: Churn rate as percentage
+        - period: Time period used
+        - total_users: Total users in the cohort
+        - churned_users: Number of churned users
+        - status: Health status (healthy, warning, critical)
+    """
+    try:
+        result = crud.get_churn_rate_analytics(period, cohort_period)
+        return result
+    except Exception as e:
+        log_error(e, {"operation": "get_churn_rate", "period": period})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/analytics/dashboard-summary", dependencies=[Depends(get_api_key)])
+def get_dashboard_summary(
+    period: str = Query("30d", description="Time period: 7d, 30d, 90d")
+):
+    """
+    Get comprehensive dashboard summary with all KPI metrics.
+    
+    Returns all KPI data in a single request for dashboard efficiency.
+    """
+    try:
+        result = crud.get_dashboard_summary_analytics(period)
+        return result
+    except Exception as e:
+        log_error(e, {"operation": "get_dashboard_summary", "period": period})
+        raise HTTPException(status_code=500, detail="Internal server error")

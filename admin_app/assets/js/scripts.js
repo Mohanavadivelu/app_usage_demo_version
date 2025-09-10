@@ -83,90 +83,51 @@ function showLoading() {
 // Dashboard Functions
 async function loadDashboard() {
     try {
-        const stats = await fetchAppListSummary();
         const contentArea = document.getElementById('content-area');
         
         contentArea.innerHTML = `
-            <!-- Dashboard Overview Cards -->
+            <!-- Date Range Filter -->
             <div class="row mb-4">
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card dashboard-card bg-light-blue">
-                        <div class="card-body position-relative">
-                            <div class="card-title">Total Applications</div>
-                            <div class="card-value">${stats.total_apps || 0}</div>
-                            <i class="bi bi-grid-3x3-gap card-icon"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card dashboard-card bg-light-success">
-                        <div class="card-body position-relative">
-                            <div class="card-title">Tracking Enabled</div>
-                            <div class="card-value">${stats.enabled_tracking || 0}</div>
-                            <i class="bi bi-check-circle card-icon"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card dashboard-card bg-light-warning">
-                        <div class="card-body position-relative">
-                            <div class="card-title">Tracking Disabled</div>
-                            <div class="card-value">${stats.disabled_tracking || 0}</div>
-                            <i class="bi bi-x-circle card-icon"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card dashboard-card bg-light-danger">
-                        <div class="card-body position-relative">
-                            <div class="card-title">App Types</div>
-                            <div class="card-value">${Object.keys(stats.app_types || {}).length}</div>
-                            <i class="bi bi-tags card-icon"></i>
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Analytics Period</h6>
+                                <div class="btn-group" role="group" aria-label="Time period selection">
+                                    <input type="radio" class="btn-check" name="period" id="period-7d" value="7d" checked>
+                                    <label class="btn btn-outline-primary btn-sm" for="period-7d">7 Days</label>
+                                    
+                                    <input type="radio" class="btn-check" name="period" id="period-30d" value="30d">
+                                    <label class="btn btn-outline-primary btn-sm" for="period-30d">30 Days</label>
+                                    
+                                    <input type="radio" class="btn-check" name="period" id="period-90d" value="90d">
+                                    <label class="btn btn-outline-primary btn-sm" for="period-90d">90 Days</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Charts Row -->
+            <!-- KPI Dashboard Cards -->
+            <div class="row mb-4" id="kpi-cards">
+                <!-- Cards will be loaded here -->
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading KPI data...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Analytics -->
             <div class="row mb-4">
                 <div class="col-lg-8">
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="card-title mb-0">Application Types Distribution</h5>
+                            <h5 class="card-title mb-0">Application Catalog Overview</h5>
                         </div>
                         <div class="card-body">
-                            <div id="app-types-chart" class="chart-container">
-                                ${generateAppTypesChart(stats.app_types || {})}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Top Publishers</h5>
-                        </div>
-                        <div class="card-body">
-                            <div id="publishers-list">
-                                ${generatePublishersList(stats.publishers || {})}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Applications -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Recent Applications</h5>
-                            <button class="btn btn-primary btn-sm" onclick="loadPage('app-manager')">
-                                <i class="bi bi-plus me-1"></i>Manage Apps
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div id="recent-apps">
+                            <div id="app-catalog-overview">
                                 <div class="text-center">
                                     <div class="spinner-border spinner-border-sm text-primary" role="status">
                                         <span class="visually-hidden">Loading...</span>
@@ -176,15 +137,210 @@ async function loadDashboard() {
                         </div>
                     </div>
                 </div>
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Quick Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" onclick="loadPage('app-manager')">
+                                    <i class="bi bi-plus me-2"></i>Add Application
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="showActiveUsersList()">
+                                    <i class="bi bi-people me-2"></i>View Active Users
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="showUsageBreakdown()">
+                                    <i class="bi bi-bar-chart me-2"></i>Usage Breakdown
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
         
-        // Load recent applications
-        loadRecentApplications();
+        // Load KPI data
+        loadKPIDashboard();
+        
+        // Load app catalog overview
+        loadAppCatalogOverview();
+        
+        // Add event listeners for period selection
+        document.querySelectorAll('input[name="period"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.checked) {
+                    loadKPIDashboard(this.value);
+                }
+            });
+        });
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
         showError('Failed to load dashboard data');
+    }
+}
+
+// Load KPI Dashboard with 6 interactive cards
+async function loadKPIDashboard(period = '7d') {
+    try {
+        const kpiContainer = document.getElementById('kpi-cards');
+        
+        // Show loading state
+        kpiContainer.innerHTML = `
+            <div class="col-12 text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading KPI data...</span>
+                </div>
+            </div>
+        `;
+        
+        // Fetch dashboard summary data
+        const dashboardData = await fetchDashboardSummary(period);
+        
+        // Generate KPI cards
+        kpiContainer.innerHTML = `
+            <!-- Total Applications Tracked -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card dashboard-card bg-light-blue h-100 clickable-card" onclick="handleCardClick('total-apps')">
+                    <div class="card-body position-relative">
+                        <div class="card-title">Total Applications Tracked</div>
+                        <div class="card-value">${dashboardData.total_applications || 0}</div>
+                        <div class="card-trend ${dashboardData.total_applications_trend >= 0 ? 'positive' : 'negative'}">
+                            <i class="bi ${dashboardData.total_applications_trend >= 0 ? 'bi-arrow-up' : 'bi-arrow-down'}"></i>
+                            ${Math.abs(dashboardData.total_applications_trend || 0)}%
+                        </div>
+                        <i class="bi bi-grid-3x3-gap card-icon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Users -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card dashboard-card bg-light-success h-100 clickable-card" onclick="handleCardClick('active-users', '${period}')">
+                    <div class="card-body position-relative">
+                        <div class="card-title">Active Users (${period.toUpperCase()})</div>
+                        <div class="card-value">${dashboardData.active_users?.count || 0}</div>
+                        <div class="card-trend ${(dashboardData.active_users?.trend_percentage || 0) >= 0 ? 'positive' : 'negative'}">
+                            <i class="bi ${(dashboardData.active_users?.trend_percentage || 0) >= 0 ? 'bi-arrow-up' : 'bi-arrow-down'}"></i>
+                            ${Math.abs(dashboardData.active_users?.trend_percentage || 0).toFixed(1)}%
+                        </div>
+                        <i class="bi bi-people card-icon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Usage Hours -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card dashboard-card bg-light-info h-100 clickable-card" onclick="handleCardClick('usage-hours', '${period}')">
+                    <div class="card-body position-relative">
+                        <div class="card-title">Total Usage Hours (${period.toUpperCase()})</div>
+                        <div class="card-value">${(dashboardData.total_hours?.total_hours || 0).toFixed(1)}h</div>
+                        <div class="card-trend ${(dashboardData.total_hours?.trend_percentage || 0) >= 0 ? 'positive' : 'negative'}">
+                            <i class="bi ${(dashboardData.total_hours?.trend_percentage || 0) >= 0 ? 'bi-arrow-up' : 'bi-arrow-down'}"></i>
+                            ${Math.abs(dashboardData.total_hours?.trend_percentage || 0).toFixed(1)}%
+                        </div>
+                        <div class="mini-chart">
+                            ${generateSparkline(dashboardData.total_hours?.daily_breakdown || [])}
+                        </div>
+                        <i class="bi bi-clock card-icon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Users -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card dashboard-card bg-light-warning h-100 clickable-card" onclick="handleCardClick('new-users', '${period}')">
+                    <div class="card-body position-relative">
+                        <div class="card-title">New Users (${period.toUpperCase()})</div>
+                        <div class="card-value">${dashboardData.new_users?.count || 0}</div>
+                        <div class="card-trend ${(dashboardData.new_users?.growth_rate || 0) >= 0 ? 'positive' : 'negative'}">
+                            <i class="bi ${(dashboardData.new_users?.growth_rate || 0) >= 0 ? 'bi-arrow-up' : 'bi-arrow-down'}"></i>
+                            ${Math.abs(dashboardData.new_users?.growth_rate || 0).toFixed(1)}%
+                        </div>
+                        <i class="bi bi-person-plus card-icon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top App by Usage -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card dashboard-card bg-light-purple h-100 clickable-card" onclick="handleCardClick('top-app', '${period}')">
+                    <div class="card-body position-relative">
+                        <div class="card-title">Top App by Usage</div>
+                        <div class="card-value text-truncate" title="${dashboardData.top_app?.app_name || 'N/A'}">
+                            ${dashboardData.top_app?.app_name || 'N/A'}
+                        </div>
+                        <div class="card-subtitle">${(dashboardData.top_app?.total_hours || 0).toFixed(1)}h total</div>
+                        <div class="mini-chart">
+                            ${generateSparkline(dashboardData.top_app?.daily_usage || [])}
+                        </div>
+                        <i class="bi bi-trophy card-icon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Churn Rate -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card dashboard-card bg-light-danger h-100 clickable-card" onclick="handleCardClick('churn-rate', '${period}')">
+                    <div class="card-body position-relative">
+                        <div class="card-title">Churn Rate</div>
+                        <div class="card-value">${(dashboardData.churn_rate?.rate || 0).toFixed(1)}%</div>
+                        <div class="card-subtitle">
+                            <span class="badge ${getChurnHealthBadge(dashboardData.churn_rate?.health_status)}">
+                                ${dashboardData.churn_rate?.health_status || 'Unknown'}
+                            </span>
+                        </div>
+                        <i class="bi bi-graph-down card-icon"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error loading KPI dashboard:', error);
+        document.getElementById('kpi-cards').innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Failed to load KPI data. Some analytics features may not be available yet.
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Load app catalog overview (existing functionality)
+async function loadAppCatalogOverview() {
+    try {
+        const stats = await fetchAppListSummary();
+        const container = document.getElementById('app-catalog-overview');
+        
+        container.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <h6>Application Types</h6>
+                        ${generateAppTypesChart(stats.app_types || {})}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <h6>Top Publishers</h6>
+                        ${generatePublishersList(stats.publishers || {})}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error loading app catalog overview:', error);
+        document.getElementById('app-catalog-overview').innerHTML = `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Failed to load application catalog data.
+            </div>
+        `;
     }
 }
 
@@ -799,6 +955,590 @@ function generatePublishersList(publishers) {
     });
     html += '</div>';
     return html;
+}
+
+// KPI Dashboard Helper Functions
+async function handleCardClick(cardType, period = '7d') {
+    console.log(`Card clicked: ${cardType} for period: ${period}`);
+    
+    switch(cardType) {
+        case 'total-apps':
+            // Navigate to App Manager filtered to show all apps
+            loadPage('app-manager');
+            break;
+            
+        case 'active-users':
+            await showActiveUsersList(period);
+            break;
+            
+        case 'usage-hours':
+            await showUsageBreakdown(period);
+            break;
+            
+        case 'new-users':
+            await showOnboardingTrend(period);
+            break;
+            
+        case 'top-app':
+            await showTopAppDetails(period);
+            break;
+            
+        case 'churn-rate':
+            await showChurnAnalysis(period);
+            break;
+            
+        default:
+            console.log('Unknown card type:', cardType);
+    }
+}
+
+async function showActiveUsersList(period = '7d') {
+    try {
+        const data = await fetchActiveUsersAnalytics(period);
+        
+        // Create modal content
+        const modalContent = `
+            <div class="modal fade" id="activeUsersModal" tabindex="-1" aria-labelledby="activeUsersModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="activeUsersModalLabel">Active Users (${period.toUpperCase()})</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h3 class="text-primary">${data.count || 0}</h3>
+                                        <p class="text-muted">Total Active Users</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h3 class="text-success">${data.previous_count || 0}</h3>
+                                        <p class="text-muted">Previous Period</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h3 class="${(data.trend_percentage || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                            ${(data.trend_percentage || 0) >= 0 ? '+' : ''}${(data.trend_percentage || 0).toFixed(1)}%
+                                        </h3>
+                                        <p class="text-muted">Change</p>
+                                    </div>
+                                </div>
+                            </div>
+                            ${data.users && data.users.length > 0 ? `
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>User ID</th>
+                                                <th>Last Active</th>
+                                                <th>Total Sessions</th>
+                                                <th>Total Hours</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.users.slice(0, 10).map(user => `
+                                                <tr>
+                                                    <td>${user.user_id}</td>
+                                                    <td>${new Date(user.last_active).toLocaleDateString()}</td>
+                                                    <td>${user.session_count || 0}</td>
+                                                    <td>${(user.total_hours || 0).toFixed(1)}h</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                    ${data.users.length > 10 ? `<p class="text-muted small">Showing first 10 of ${data.users.length} users</p>` : ''}
+                                </div>
+                            ` : '<p class="text-muted">No active users found for this period.</p>'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('activeUsersModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to body and show
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+        const modal = new bootstrap.Modal(document.getElementById('activeUsersModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error showing active users:', error);
+        showError('Failed to load active users data');
+    }
+}
+
+async function showUsageBreakdown(period = '7d') {
+    try {
+        const data = await fetchTotalHoursAnalytics(period);
+        
+        const modalContent = `
+            <div class="modal fade" id="usageBreakdownModal" tabindex="-1" aria-labelledby="usageBreakdownModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="usageBreakdownModalLabel">Usage Hours Breakdown (${period.toUpperCase()})</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h3 class="text-primary">${(data.total_hours || 0).toFixed(1)}h</h3>
+                                        <p class="text-muted">Total Hours</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h3 class="text-info">${(data.average_daily || 0).toFixed(1)}h</h3>
+                                        <p class="text-muted">Daily Average</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h3 class="${(data.trend_percentage || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                            ${(data.trend_percentage || 0) >= 0 ? '+' : ''}${(data.trend_percentage || 0).toFixed(1)}%
+                                        </h3>
+                                        <p class="text-muted">Change</p>
+                                    </div>
+                                </div>
+                            </div>
+                            ${data.daily_breakdown && data.daily_breakdown.length > 0 ? `
+                                <div class="mb-3">
+                                    <h6>Daily Usage Trend</h6>
+                                    <div class="chart-container">
+                                        ${generateDailyUsageChart(data.daily_breakdown)}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${data.app_breakdown && data.app_breakdown.length > 0 ? `
+                                <div>
+                                    <h6>Top Applications by Usage</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Application</th>
+                                                    <th>Hours</th>
+                                                    <th>Percentage</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${data.app_breakdown.slice(0, 10).map(app => `
+                                                    <tr>
+                                                        <td>${app.app_name}</td>
+                                                        <td>${(app.hours || 0).toFixed(1)}h</td>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                                    <div class="progress-bar" style="width: ${app.percentage || 0}%"></div>
+                                                                </div>
+                                                                <small>${(app.percentage || 0).toFixed(1)}%</small>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ` : '<p class="text-muted">No usage data available for this period.</p>'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('usageBreakdownModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+        const modal = new bootstrap.Modal(document.getElementById('usageBreakdownModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error showing usage breakdown:', error);
+        showError('Failed to load usage breakdown data');
+    }
+}
+
+async function showOnboardingTrend(period = '7d') {
+    try {
+        const data = await fetchNewUsersAnalytics(period);
+        
+        const modalContent = `
+            <div class="modal fade" id="onboardingTrendModal" tabindex="-1" aria-labelledby="onboardingTrendModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="onboardingTrendModalLabel">New Users & Onboarding Trend (${period.toUpperCase()})</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <h3 class="text-primary">${data.count || 0}</h3>
+                                        <p class="text-muted">New Users</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <h3 class="text-info">${(data.daily_average || 0).toFixed(1)}</h3>
+                                        <p class="text-muted">Daily Average</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <h3 class="${(data.growth_rate || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                            ${(data.growth_rate || 0) >= 0 ? '+' : ''}${(data.growth_rate || 0).toFixed(1)}%
+                                        </h3>
+                                        <p class="text-muted">Growth Rate</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <h3 class="text-warning">${data.previous_count || 0}</h3>
+                                        <p class="text-muted">Previous Period</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-muted">New users are identified by their first recorded usage session within the selected time period.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('onboardingTrendModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+        const modal = new bootstrap.Modal(document.getElementById('onboardingTrendModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error showing onboarding trend:', error);
+        showError('Failed to load onboarding trend data');
+    }
+}
+
+async function showTopAppDetails(period = '7d') {
+    try {
+        const data = await fetchTopAppAnalytics(period);
+        
+        const modalContent = `
+            <div class="modal fade" id="topAppModal" tabindex="-1" aria-labelledby="topAppModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="topAppModalLabel">Top Application Details (${period.toUpperCase()})</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${data.app_name ? `
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <h4>${data.app_name}</h4>
+                                        <p class="text-muted">${data.app_type || 'Unknown Type'} • ${data.publisher || 'Unknown Publisher'}</p>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <h3 class="text-primary">${(data.total_hours || 0).toFixed(1)}h</h3>
+                                        <p class="text-muted">Total Usage Hours</p>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h5 class="text-info">${data.unique_users || 0}</h5>
+                                            <p class="text-muted small">Unique Users</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h5 class="text-success">${(data.average_session_length || 0).toFixed(1)}h</h5>
+                                            <p class="text-muted small">Avg Session</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h5 class="text-warning">${data.total_sessions || 0}</h5>
+                                            <p class="text-muted small">Total Sessions</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                ${data.daily_usage && data.daily_usage.length > 0 ? `
+                                    <div class="mb-3">
+                                        <h6>Daily Usage Pattern</h6>
+                                        <div class="chart-container">
+                                            ${generateDailyUsageChart(data.daily_usage)}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            ` : '<p class="text-muted">No application data available for this period.</p>'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('topAppModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+        const modal = new bootstrap.Modal(document.getElementById('topAppModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error showing top app details:', error);
+        showError('Failed to load top application data');
+    }
+}
+
+async function showChurnAnalysis(period = '7d') {
+    try {
+        const data = await fetchChurnRateAnalytics(period);
+        
+        const modalContent = `
+            <div class="modal fade" id="churnAnalysisModal" tabindex="-1" aria-labelledby="churnAnalysisModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="churnAnalysisModalLabel">Churn Rate Analysis</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h3 class="text-danger">${(data.rate || 0).toFixed(1)}%</h3>
+                                        <p class="text-muted">Churn Rate</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h3 class="text-warning">${data.churned_users || 0}</h3>
+                                        <p class="text-muted">Churned Users</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <span class="badge ${getChurnHealthBadge(data.health_status)} fs-6">
+                                            ${data.health_status || 'Unknown'}
+                                        </span>
+                                        <p class="text-muted">Health Status</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Churn Definition:</strong> Users who were active in the previous period but have not been active in the current period.
+                            </div>
+                            ${data.cohort_analysis && data.cohort_analysis.length > 0 ? `
+                                <div>
+                                    <h6>Cohort Analysis</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Cohort</th>
+                                                    <th>Total Users</th>
+                                                    <th>Churned</th>
+                                                    <th>Churn Rate</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${data.cohort_analysis.map(cohort => `
+                                                    <tr>
+                                                        <td>${cohort.period}</td>
+                                                        <td>${cohort.total_users}</td>
+                                                        <td>${cohort.churned_users}</td>
+                                                        <td>
+                                                            <span class="badge ${cohort.churn_rate > 20 ? 'bg-danger' : cohort.churn_rate > 10 ? 'bg-warning' : 'bg-success'}">
+                                                                ${cohort.churn_rate.toFixed(1)}%
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('churnAnalysisModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+        const modal = new bootstrap.Modal(document.getElementById('churnAnalysisModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error showing churn analysis:', error);
+        showError('Failed to load churn analysis data');
+    }
+}
+
+// Analytics API Functions
+async function fetchDashboardSummary(period = '7d') {
+    const response = await fetch(`${API_BASE_URL}/app_usage/analytics/dashboard-summary?period=${period}`, {
+        headers: {
+            'X-API-Key-725d9439': API_KEY
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+async function fetchActiveUsersAnalytics(period = '7d') {
+    const response = await fetch(`${API_BASE_URL}/app_usage/analytics/active-users?period=${period}`, {
+        headers: {
+            'X-API-Key-725d9439': API_KEY
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+async function fetchTotalHoursAnalytics(period = '7d') {
+    const response = await fetch(`${API_BASE_URL}/app_usage/analytics/total-hours?period=${period}`, {
+        headers: {
+            'X-API-Key-725d9439': API_KEY
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+async function fetchNewUsersAnalytics(period = '7d') {
+    const response = await fetch(`${API_BASE_URL}/app_usage/analytics/new-users?period=${period}`, {
+        headers: {
+            'X-API-Key-725d9439': API_KEY
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+async function fetchTopAppAnalytics(period = '7d') {
+    const response = await fetch(`${API_BASE_URL}/app_usage/analytics/top-app?period=${period}`, {
+        headers: {
+            'X-API-Key-725d9439': API_KEY
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+async function fetchChurnRateAnalytics(period = '7d') {
+    const response = await fetch(`${API_BASE_URL}/app_usage/analytics/churn-rate?period=${period}`, {
+        headers: {
+            'X-API-Key-725d9439': API_KEY
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+// Chart Generation Functions
+function generateSparkline(data) {
+    if (!data || data.length === 0) {
+        return '<div class="text-muted small">No data</div>';
+    }
+    
+    const maxValue = Math.max(...data.map(d => d.value || 0));
+    const minValue = Math.min(...data.map(d => d.value || 0));
+    const range = maxValue - minValue || 1;
+    
+    const points = data.map((d, i) => {
+        const x = (i / (data.length - 1)) * 100;
+        const y = 100 - (((d.value || 0) - minValue) / range) * 100;
+        return `${x},${y}`;
+    }).join(' ');
+    
+    return `
+        <svg class="sparkline" width="60" height="20" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polyline points="${points}" fill="none" stroke="currentColor" stroke-width="2" opacity="0.7"/>
+        </svg>
+    `;
+}
+
+function generateDailyUsageChart(data) {
+    if (!data || data.length === 0) {
+        return '<div class="text-muted">No daily usage data available</div>';
+    }
+    
+    const maxValue = Math.max(...data.map(d => d.hours || 0));
+    
+    return `
+        <div class="daily-usage-chart">
+            ${data.map(day => `
+                <div class="chart-bar-container">
+                    <div class="chart-bar" style="height: ${maxValue > 0 ? ((day.hours || 0) / maxValue) * 100 : 0}%"></div>
+                    <div class="chart-label">${new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                    <div class="chart-value">${(day.hours || 0).toFixed(1)}h</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function getChurnHealthBadge(status) {
+    switch(status?.toLowerCase()) {
+        case 'healthy':
+            return 'bg-success';
+        case 'warning':
+            return 'bg-warning';
+        case 'critical':
+            return 'bg-danger';
+        default:
+            return 'bg-secondary';
+    }
 }
 
 // Notification Functions

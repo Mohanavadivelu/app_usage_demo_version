@@ -387,7 +387,477 @@ def get_user_analytics(user: str) -> Dict[str, Any]:
         raise DatabaseError(f"Failed to get analytics for user {user}: {str(e)}")
 
 # ============================================================================
-# SECTION 5: UTILITY FUNCTIONS
+# SECTION 5: KPI DASHBOARD ANALYTICS OPERATIONS
+# ============================================================================
+
+@handle_database_error
+def get_active_users_analytics(period: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict[str, Any]:
+    """Get active users count for the specified period."""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Calculate date range
+        if start_date and end_date:
+            actual_start = start_date
+            actual_end = end_date
+        else:
+            end_dt = datetime.now()
+            if period == "7d":
+                start_dt = end_dt - timedelta(days=7)
+            elif period == "30d":
+                start_dt = end_dt - timedelta(days=30)
+            elif period == "90d":
+                start_dt = end_dt - timedelta(days=90)
+            else:
+                start_dt = end_dt - timedelta(days=30)  # default
+            
+            actual_start = start_dt.strftime('%Y-%m-%d')
+            actual_end = end_dt.strftime('%Y-%m-%d')
+        
+        with get_db_context() as conn:
+            cursor = conn.cursor()
+            
+            # Get active users count
+            cursor.execute('''
+                SELECT COUNT(DISTINCT user) as active_users
+                FROM app_usage
+                WHERE log_date BETWEEN ? AND ?
+            ''', (actual_start, actual_end))
+            
+            result = cursor.fetchone()
+            active_users = result['active_users'] if result else 0
+            
+            # Calculate trend (previous period comparison)
+            prev_start_dt = datetime.strptime(actual_start, '%Y-%m-%d') - timedelta(days=int(period[:-1]))
+            prev_end_dt = datetime.strptime(actual_start, '%Y-%m-%d') - timedelta(days=1)
+            
+            cursor.execute('''
+                SELECT COUNT(DISTINCT user) as prev_active_users
+                FROM app_usage
+                WHERE log_date BETWEEN ? AND ?
+            ''', (prev_start_dt.strftime('%Y-%m-%d'), prev_end_dt.strftime('%Y-%m-%d')))
+            
+            prev_result = cursor.fetchone()
+            prev_active_users = prev_result['prev_active_users'] if prev_result else 0
+            
+            # Calculate trend percentage
+            if prev_active_users > 0:
+                trend = round(((active_users - prev_active_users) / prev_active_users) * 100, 1)
+            else:
+                trend = 0.0
+            
+            logger.info(f"Active users analytics: {active_users} users, {trend}% trend")
+            
+            return {
+                "active_users": active_users,
+                "period": period,
+                "start_date": actual_start,
+                "end_date": actual_end,
+                "trend": trend
+            }
+            
+    except Exception as e:
+        logger.error(f"Failed to get active users analytics: {e}")
+        raise DatabaseError(f"Failed to get active users analytics: {str(e)}")
+
+@handle_database_error
+def get_total_hours_analytics(period: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict[str, Any]:
+    """Get total usage hours for the specified period."""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Calculate date range
+        if start_date and end_date:
+            actual_start = start_date
+            actual_end = end_date
+        else:
+            end_dt = datetime.now()
+            if period == "7d":
+                start_dt = end_dt - timedelta(days=7)
+            elif period == "30d":
+                start_dt = end_dt - timedelta(days=30)
+            elif period == "90d":
+                start_dt = end_dt - timedelta(days=90)
+            else:
+                start_dt = end_dt - timedelta(days=30)
+            
+            actual_start = start_dt.strftime('%Y-%m-%d')
+            actual_end = end_dt.strftime('%Y-%m-%d')
+        
+        with get_db_context() as conn:
+            cursor = conn.cursor()
+            
+            # Get total hours
+            cursor.execute('''
+                SELECT COALESCE(SUM(duration_seconds), 0) as total_seconds
+                FROM app_usage
+                WHERE log_date BETWEEN ? AND ?
+            ''', (actual_start, actual_end))
+            
+            result = cursor.fetchone()
+            total_seconds = result['total_seconds'] if result else 0
+            total_hours = round(total_seconds / 3600, 1)
+            total_hours_formatted = seconds_to_duration(total_seconds)
+            
+            # Get daily breakdown for sparkline
+            cursor.execute('''
+                SELECT log_date, COALESCE(SUM(duration_seconds), 0) as daily_seconds
+                FROM app_usage
+                WHERE log_date BETWEEN ? AND ?
+                GROUP BY log_date
+                ORDER BY log_date
+            ''', (actual_start, actual_end))
+            
+            daily_data = cursor.fetchall()
+            daily_breakdown = [round(row['daily_seconds'] / 3600, 1) for row in daily_data]
+            
+            # Calculate trend
+            prev_start_dt = datetime.strptime(actual_start, '%Y-%m-%d') - timedelta(days=int(period[:-1]))
+            prev_end_dt = datetime.strptime(actual_start, '%Y-%m-%d') - timedelta(days=1)
+            
+            cursor.execute('''
+                SELECT COALESCE(SUM(duration_seconds), 0) as prev_total_seconds
+                FROM app_usage
+                WHERE log_date BETWEEN ? AND ?
+            ''', (prev_start_dt.strftime('%Y-%m-%d'), prev_end_dt.strftime('%Y-%m-%d')))
+            
+            prev_result = cursor.fetchone()
+            prev_total_seconds = prev_result['prev_total_seconds'] if prev_result else 0
+            
+            if prev_total_seconds > 0:
+                trend = round(((total_seconds - prev_total_seconds) / prev_total_seconds) * 100, 1)
+            else:
+                trend = 0.0
+            
+            logger.info(f"Total hours analytics: {total_hours} hours, {trend}% trend")
+            
+            return {
+                "total_hours": total_hours,
+                "total_hours_formatted": total_hours_formatted,
+                "period": period,
+                "start_date": actual_start,
+                "end_date": actual_end,
+                "trend": trend,
+                "daily_breakdown": daily_breakdown
+            }
+            
+    except Exception as e:
+        logger.error(f"Failed to get total hours analytics: {e}")
+        raise DatabaseError(f"Failed to get total hours analytics: {str(e)}")
+
+@handle_database_error
+def get_new_users_analytics(period: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict[str, Any]:
+    """Get new users count for the specified period."""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Calculate date range
+        if start_date and end_date:
+            actual_start = start_date
+            actual_end = end_date
+        else:
+            end_dt = datetime.now()
+            if period == "7d":
+                start_dt = end_dt - timedelta(days=7)
+            elif period == "30d":
+                start_dt = end_dt - timedelta(days=30)
+            else:
+                start_dt = end_dt - timedelta(days=7)  # default to 7d for new users
+            
+            actual_start = start_dt.strftime('%Y-%m-%d')
+            actual_end = end_dt.strftime('%Y-%m-%d')
+        
+        with get_db_context() as conn:
+            cursor = conn.cursor()
+            
+            # Get users who first appeared in this period
+            cursor.execute('''
+                SELECT COUNT(DISTINCT user) as new_users
+                FROM app_usage u1
+                WHERE u1.log_date BETWEEN ? AND ?
+                AND NOT EXISTS (
+                    SELECT 1 FROM app_usage u2 
+                    WHERE u2.user = u1.user 
+                    AND u2.log_date < ?
+                )
+            ''', (actual_start, actual_end, actual_start))
+            
+            result = cursor.fetchone()
+            new_users = result['new_users'] if result else 0
+            
+            # Get daily breakdown
+            cursor.execute('''
+                SELECT u1.log_date, COUNT(DISTINCT u1.user) as daily_new_users
+                FROM app_usage u1
+                WHERE u1.log_date BETWEEN ? AND ?
+                AND NOT EXISTS (
+                    SELECT 1 FROM app_usage u2 
+                    WHERE u2.user = u1.user 
+                    AND u2.log_date < u1.log_date
+                )
+                GROUP BY u1.log_date
+                ORDER BY u1.log_date
+            ''', (actual_start, actual_end))
+            
+            daily_data = cursor.fetchall()
+            daily_breakdown = [row['daily_new_users'] for row in daily_data]
+            
+            # Calculate growth rate (compare with previous period)
+            prev_start_dt = datetime.strptime(actual_start, '%Y-%m-%d') - timedelta(days=int(period[:-1]))
+            prev_end_dt = datetime.strptime(actual_start, '%Y-%m-%d') - timedelta(days=1)
+            
+            cursor.execute('''
+                SELECT COUNT(DISTINCT user) as prev_new_users
+                FROM app_usage u1
+                WHERE u1.log_date BETWEEN ? AND ?
+                AND NOT EXISTS (
+                    SELECT 1 FROM app_usage u2 
+                    WHERE u2.user = u1.user 
+                    AND u2.log_date < ?
+                )
+            ''', (prev_start_dt.strftime('%Y-%m-%d'), prev_end_dt.strftime('%Y-%m-%d'), prev_start_dt.strftime('%Y-%m-%d')))
+            
+            prev_result = cursor.fetchone()
+            prev_new_users = prev_result['prev_new_users'] if prev_result else 0
+            
+            if prev_new_users > 0:
+                growth_rate = round(((new_users - prev_new_users) / prev_new_users) * 100, 1)
+            else:
+                growth_rate = 0.0
+            
+            logger.info(f"New users analytics: {new_users} users, {growth_rate}% growth")
+            
+            return {
+                "new_users": new_users,
+                "period": period,
+                "start_date": actual_start,
+                "end_date": actual_end,
+                "growth_rate": growth_rate,
+                "daily_breakdown": daily_breakdown
+            }
+            
+    except Exception as e:
+        logger.error(f"Failed to get new users analytics: {e}")
+        raise DatabaseError(f"Failed to get new users analytics: {str(e)}")
+
+@handle_database_error
+def get_top_app_analytics(period: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict[str, Any]:
+    """Get top application by usage for the specified period."""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Calculate date range
+        if start_date and end_date:
+            actual_start = start_date
+            actual_end = end_date
+        else:
+            end_dt = datetime.now()
+            if period == "7d":
+                start_dt = end_dt - timedelta(days=7)
+            elif period == "30d":
+                start_dt = end_dt - timedelta(days=30)
+            elif period == "90d":
+                start_dt = end_dt - timedelta(days=90)
+            else:
+                start_dt = end_dt - timedelta(days=30)
+            
+            actual_start = start_dt.strftime('%Y-%m-%d')
+            actual_end = end_dt.strftime('%Y-%m-%d')
+        
+        with get_db_context() as conn:
+            cursor = conn.cursor()
+            
+            # Get top app by total usage
+            cursor.execute('''
+                SELECT 
+                    application_name,
+                    COALESCE(SUM(duration_seconds), 0) as total_seconds,
+                    COUNT(DISTINCT user) as user_count
+                FROM app_usage
+                WHERE log_date BETWEEN ? AND ?
+                GROUP BY application_name
+                ORDER BY total_seconds DESC
+                LIMIT 1
+            ''', (actual_start, actual_end))
+            
+            result = cursor.fetchone()
+            
+            if result and result['total_seconds'] > 0:
+                app_name = result['application_name']
+                total_seconds = result['total_seconds']
+                total_hours = round(total_seconds / 3600, 1)
+                total_hours_formatted = seconds_to_duration(total_seconds)
+                user_count = result['user_count']
+                
+                # Get daily usage for sparkline
+                cursor.execute('''
+                    SELECT log_date, COALESCE(SUM(duration_seconds), 0) as daily_seconds
+                    FROM app_usage
+                    WHERE application_name = ? AND log_date BETWEEN ? AND ?
+                    GROUP BY log_date
+                    ORDER BY log_date
+                ''', (app_name, actual_start, actual_end))
+                
+                daily_data = cursor.fetchall()
+                sparkline_data = [round(row['daily_seconds'] / 3600, 1) for row in daily_data]
+                
+                logger.info(f"Top app analytics: {app_name} with {total_hours} hours")
+                
+                return {
+                    "app_name": app_name,
+                    "total_hours": total_hours,
+                    "total_hours_formatted": total_hours_formatted,
+                    "user_count": user_count,
+                    "period": period,
+                    "sparkline_data": sparkline_data
+                }
+            else:
+                return {
+                    "app_name": "No data",
+                    "total_hours": 0.0,
+                    "total_hours_formatted": "00:00:00",
+                    "user_count": 0,
+                    "period": period,
+                    "sparkline_data": []
+                }
+                
+    except Exception as e:
+        logger.error(f"Failed to get top app analytics: {e}")
+        raise DatabaseError(f"Failed to get top app analytics: {str(e)}")
+
+@handle_database_error
+def get_churn_rate_analytics(period: str, cohort_period: str) -> Dict[str, Any]:
+    """Get user churn rate for the specified period."""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Calculate cohort dates
+        end_dt = datetime.now()
+        if cohort_period == "30d":
+            cohort_start_dt = end_dt - timedelta(days=60)  # Look at users from 60 days ago
+            cohort_end_dt = end_dt - timedelta(days=30)    # Who were active 30 days ago
+        elif cohort_period == "90d":
+            cohort_start_dt = end_dt - timedelta(days=180)
+            cohort_end_dt = end_dt - timedelta(days=90)
+        else:
+            cohort_start_dt = end_dt - timedelta(days=60)
+            cohort_end_dt = end_dt - timedelta(days=30)
+        
+        # Recent activity period
+        if period == "30d":
+            recent_start_dt = end_dt - timedelta(days=30)
+        elif period == "90d":
+            recent_start_dt = end_dt - timedelta(days=90)
+        else:
+            recent_start_dt = end_dt - timedelta(days=30)
+        
+        cohort_start = cohort_start_dt.strftime('%Y-%m-%d')
+        cohort_end = cohort_end_dt.strftime('%Y-%m-%d')
+        recent_start = recent_start_dt.strftime('%Y-%m-%d')
+        recent_end = end_dt.strftime('%Y-%m-%d')
+        
+        with get_db_context() as conn:
+            cursor = conn.cursor()
+            
+            # Get users who were active in the cohort period
+            cursor.execute('''
+                SELECT COUNT(DISTINCT user) as cohort_users
+                FROM app_usage
+                WHERE log_date BETWEEN ? AND ?
+            ''', (cohort_start, cohort_end))
+            
+            cohort_result = cursor.fetchone()
+            total_users = cohort_result['cohort_users'] if cohort_result else 0
+            
+            if total_users == 0:
+                return {
+                    "churn_rate": 0.0,
+                    "period": period,
+                    "total_users": 0,
+                    "churned_users": 0,
+                    "status": "no_data"
+                }
+            
+            # Get users from cohort who are still active recently
+            cursor.execute('''
+                SELECT COUNT(DISTINCT u1.user) as retained_users
+                FROM app_usage u1
+                WHERE u1.log_date BETWEEN ? AND ?
+                AND EXISTS (
+                    SELECT 1 FROM app_usage u2
+                    WHERE u2.user = u1.user
+                    AND u2.log_date BETWEEN ? AND ?
+                )
+            ''', (cohort_start, cohort_end, recent_start, recent_end))
+            
+            retained_result = cursor.fetchone()
+            retained_users = retained_result['retained_users'] if retained_result else 0
+            
+            churned_users = total_users - retained_users
+            churn_rate = round((churned_users / total_users) * 100, 1) if total_users > 0 else 0.0
+            
+            # Determine health status
+            if churn_rate <= 5.0:
+                status = "healthy"
+            elif churn_rate <= 15.0:
+                status = "warning"
+            else:
+                status = "critical"
+            
+            logger.info(f"Churn rate analytics: {churn_rate}% ({churned_users}/{total_users}), status: {status}")
+            
+            return {
+                "churn_rate": churn_rate,
+                "period": period,
+                "total_users": total_users,
+                "churned_users": churned_users,
+                "status": status
+            }
+            
+    except Exception as e:
+        logger.error(f"Failed to get churn rate analytics: {e}")
+        raise DatabaseError(f"Failed to get churn rate analytics: {str(e)}")
+
+@handle_database_error
+def get_dashboard_summary_analytics(period: str) -> Dict[str, Any]:
+    """Get comprehensive dashboard summary with all KPI metrics."""
+    try:
+        # Get all analytics in one call for efficiency
+        active_users = get_active_users_analytics(period)
+        total_hours = get_total_hours_analytics(period)
+        new_users = get_new_users_analytics("7d")  # Always show 7d for new users
+        top_app = get_top_app_analytics(period)
+        churn_rate = get_churn_rate_analytics(period, "30d")
+        
+        # Get total apps from app_list (if available)
+        try:
+            with get_db_context() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) as total_apps FROM app_list")
+                app_result = cursor.fetchone()
+                total_apps = app_result['total_apps'] if app_result else 0
+        except:
+            total_apps = 0
+        
+        logger.info(f"Dashboard summary generated for period: {period}")
+        
+        return {
+            "period": period,
+            "total_apps": total_apps,
+            "active_users": active_users,
+            "total_hours": total_hours,
+            "new_users": new_users,
+            "top_app": top_app,
+            "churn_rate": churn_rate,
+            "generated_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get dashboard summary: {e}")
+        raise DatabaseError(f"Failed to get dashboard summary: {str(e)}")
+
+# ============================================================================
+# SECTION 6: UTILITY FUNCTIONS
 # ============================================================================
 
 def _row_to_dict(row) -> Dict[str, Any]:
